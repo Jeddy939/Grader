@@ -12,3 +12,17 @@
 2025-06-16 09:56:13,107 - INFO - Successfully generated draft feedback for: 1 files
 2025-06-16 09:56:13,108 - INFO - Draft feedback reports saved in: output_draft_feedback
 2025-06-16 09:56:13,108 - INFO - Log file saved at: draft_grading_process.log
+2025-06-16 10:37:53,077 - INFO - Starting AI Draft Feedback Generator...
+2025-06-16 10:37:53,117 - INFO - --- Processing file (1/1): assessment term 2 Sophie Clapham.docx ---
+2025-06-16 10:37:53,156 - INFO - Extracted approx. 909 words from assessment term 2 Sophie Clapham.docx.
+2025-06-16 10:37:53,156 - INFO - Using Gemini model: gemini-1.5-flash-latest
+2025-06-16 10:37:53,157 - INFO - Sending request to Gemini API...
+2025-06-16 10:38:02,803 - INFO - Received response from Gemini API.
+2025-06-16 10:38:02,865 - INFO - Draft feedback report saved to: output_draft_feedback\assessment term 2 Sophie Clapham_draft_feedback.docx
+2025-06-16 10:38:02,866 - INFO - Successfully generated draft feedback for: assessment term 2 Sophie Clapham.docx
+2025-06-16 10:38:02,867 - INFO - --- Draft Feedback Generation Complete ---
+2025-06-16 10:38:02,872 - INFO - Total files found in input folder: 1
+2025-06-16 10:38:02,872 - INFO - Files attempted for processing: 1
+2025-06-16 10:38:02,873 - INFO - Successfully generated draft feedback for: 1 files
+2025-06-16 10:38:02,873 - INFO - Draft feedback reports saved in: output_draft_feedback
+2025-06-16 10:38:02,874 - INFO - Log file saved at: draft_grading_process.log
