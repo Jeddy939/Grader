@@ -48,12 +48,28 @@ def get_student_identifier_from_filename(filename):
     return os.path.splitext(filename)[0]
 
 
+codex/include-author-name-in-output-filename
 def sanitize_for_filename(text):
     """Sanitize text so it is safe for filenames."""
     if not text:
         return ""
     sanitized = re.sub(r"[^A-Za-z0-9_-]+", "_", text.strip())
     return sanitized.strip("_")
+
+def extract_text_from_docx(doc):
+    """Extract text from paragraphs and tables in a DOCX Document."""
+    text_parts = []
+    for para in doc.paragraphs:
+        if para.text:
+            text_parts.append(para.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    if para.text:
+                        text_parts.append(para.text)
+    return "\n".join(text_parts)
+ main
 
 
 def extract_text_from_file(filepath):
@@ -68,9 +84,13 @@ def extract_text_from_file(filepath):
     try:
         if extension.lower() == ".docx":
             doc = DocxDocument(filepath)
+ codex/include-author-name-in-output-filename
             doc_author = doc.core_properties.author or None
             for para in doc.paragraphs:
                 text += para.text + "\n"
+
+            text = extract_text_from_docx(doc)
+main
         elif extension.lower() == ".pdf":
             # Lazy import PyPDF2 to avoid error if not installed and not processing PDFs
             try:
@@ -210,17 +230,47 @@ def call_gemini_api(prompt_text, api_key):
             logging.error(f"Google API Error Message: {e.message}")
         return None
 
+def _add_formatted_run(paragraph, text):
+    """Adds text to a paragraph, interpreting **bold** markdown syntax."""
+    parts = re.split(r"(\*\*[^*]+\*\*)", text)
+    for part in parts:
+        if part.startswith("**") and part.endswith("**") and len(part) > 4:
+            run = paragraph.add_run(part[2:-2])
+            run.bold = True
+        else:
+            paragraph.add_run(part)
+
+
 def save_draft_feedback_to_docx(feedback_prose, output_filepath, student_identifier):
-    """Saves the AI-generated prose feedback directly into a DOCX file."""
+    """Saves the AI-generated prose feedback to a nicely formatted DOCX file."""
     try:
         doc = DocxDocument()
         doc.add_heading(f"Draft Feedback Report for: {student_identifier}", level=1)
-        
-        # Split the feedback prose by newlines and add as separate paragraphs
-        # This helps maintain some of the AI's formatting (like paragraph breaks)
-        for line in feedback_prose.splitlines():
-            doc.add_paragraph(line)
-            
+
+        bullet_styles = ["List Bullet", "List Bullet 2", "List Bullet 3"]
+
+        for raw_line in feedback_prose.splitlines():
+            line = raw_line.rstrip()
+            if not line.strip():
+                doc.add_paragraph()
+                continue
+
+            if line.startswith("**") and line.endswith("**") and len(line) > 4:
+                heading_text = line.strip("*")
+                doc.add_heading(heading_text, level=2)
+                continue
+
+            bullet_match = re.match(r"^(\s*)\*\s+(.*)", line)
+            if bullet_match:
+                indent, bullet_text = bullet_match.groups()
+                level = min(len(indent) // 4, 2)
+                para = doc.add_paragraph(style=bullet_styles[level])
+                _add_formatted_run(para, bullet_text.strip())
+                continue
+
+            para = doc.add_paragraph()
+            _add_formatted_run(para, line.strip())
+
         doc.save(output_filepath)
         logging.info(f"Draft feedback report saved to: {output_filepath}")
     except Exception as e:
