@@ -48,13 +48,27 @@ def get_student_identifier_from_filename(filename):
     return os.path.splitext(filename)[0]
 
 
+def sanitize_for_filename(text):
+    """Sanitize text so it is safe for filenames."""
+    if not text:
+        return ""
+    sanitized = re.sub(r"[^A-Za-z0-9_-]+", "_", text.strip())
+    return sanitized.strip("_")
+
+
 def extract_text_from_file(filepath):
-    """Extracts text from .docx, .pdf, or attempts plain text."""
+    """Extracts text and author metadata from supported files.
+
+    Returns a tuple ``(text, author)`` where ``author`` may be ``None`` if not
+    available.
+    """
     _, extension = os.path.splitext(filepath)
     text = ""
+    doc_author = None
     try:
         if extension.lower() == ".docx":
             doc = DocxDocument(filepath)
+            doc_author = doc.core_properties.author or None
             for para in doc.paragraphs:
                 text += para.text + "\n"
         elif extension.lower() == ".pdf":
@@ -63,7 +77,7 @@ def extract_text_from_file(filepath):
                 import PyPDF2
             except ImportError:
                 logging.error("PyPDF2 library is not installed. Please install it to process PDF files: pip install PyPDF2")
-                return None
+                return None, None
 
             with open(filepath, "rb") as f:
                 reader = PyPDF2.PdfReader(f)
@@ -85,18 +99,18 @@ def extract_text_from_file(filepath):
         text = re.sub(r'\s{3,}', '\n\n', text).strip()
         if not text.strip():
             logging.warning(f"No text extracted or file is empty: {filepath}")
-            return None
-        return text
+            return None, None
+        return text, doc_author
 
     except FileNotFoundError:
         logging.error(f"File not found: {filepath}")
-        return None
+        return None, None
     except Exception as e: # Catching general exception from PyPDF2 if it was imported
         if 'PyPDF2' in str(type(e)): # Check if it's a PyPDF2 error
              logging.error(f"Could not read PDF (possibly corrupted or password protected): {filepath} - {e}")
-             return None
+             return None, None
         logging.error(f"Error extracting text from {filepath}: {e}")
-        return None
+        return None, None
 
 def load_draft_prompt_template():
     """Loads the draft feedback prompt template from file."""
@@ -243,7 +257,7 @@ def main():
 
         student_identifier = get_student_identifier_from_filename(filename)
 
-        extracted_text = extract_text_from_file(filepath)
+        extracted_text, doc_author = extract_text_from_file(filepath)
         if not extracted_text:
             logging.warning(f"Skipping {filename} due to text extraction failure or empty content.")
             continue
@@ -277,6 +291,8 @@ def main():
             continue
 
         output_filename_base = student_identifier
+        if doc_author:
+            output_filename_base += f"_{sanitize_for_filename(doc_author)}"
         output_docx_path = os.path.join(OUTPUT_FOLDER, f"{output_filename_base}_draft_feedback.docx")
         
         save_draft_feedback_to_docx(ai_feedback_prose, output_docx_path, student_identifier)
