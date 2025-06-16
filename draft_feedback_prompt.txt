@@ -20,7 +20,7 @@ Communication & Referencing	Clear structure, fluent writing, correct APA/Harvard
       "name": "Knowledge & Symptom Analysis",
       "weight": 5,
       "bands": {
-        "5": "Explains psychological disorder concept precisely; ≥5 everyday vs ≥5 pathological experiences categorised and explicitly linked to impairment.",
+        "5": "Explains psychological disorder concept precisely; valid justification/explanation of everyday vs valid justification/explanation pathological experiences categorised and explicitly linked to impairment.",
         "4": "Sound explanation; most symptoms correctly split; minor omissions.",
         "3": "Adequate explanation; several mis-categorisations or weak links.",
         "2": "Limited or confused explanation; many errors.",
@@ -53,7 +53,7 @@ Communication & Referencing	Clear structure, fluent writing, correct APA/Harvard
       "name": "Biological, Psychological & Social Factors",
       "weight": 4,
       "bands": {
-        "5": "Identifies and inter-links at least one clear factor in all three domains; explains interaction coherently.",
+        "5": "Identifies and inter-links at least two clear factors in any three domains; explains interaction coherently.",
         "4": "Identifies most factors; interaction explained with minor gaps.",
         "3": "Lists factors with superficial links.",
         "2": "Few factors; little interaction.",
@@ -72,8 +72,8 @@ Communication & Referencing	Clear structure, fluent writing, correct APA/Harvard
       "name": "Primary Diagnosis Accuracy & Justification",
       "weight": 4,
       "bands": {
-        "5": "Maps each DSM-5 criterion to evidence; cites duration; airtight justification.",
-        "4": "Accurate diagnosis; strong justification, minor omissions.",
+        "5": "Maps each DSM-5 criterion to evidence; cites duration; valid justification.",
+        "4": "Accurate diagnosis; reasonable justification, minor omissions.",
         "3": "Plausible but incomplete mapping or missing duration detail.",
         "2": "Diagnosis weakly supported or partially incorrect.",
         "1": "Incorrect or absent diagnosis."
@@ -91,7 +91,7 @@ Communication & Referencing	Clear structure, fluent writing, correct APA/Harvard
       "name": "Differential Diagnosis Reasoning",
       "weight": 4,
       "bands": {
-        "5": "Selects most plausible secondary disorder; compares and rules out with evidence.",
+        "5": "Selects plausible secondary disorder; compares and rules out with evidence.",
         "4": "Secondary disorder appropriate; comparison mostly sound.",
         "3": "Secondary named; limited comparison.",
         "2": "Inappropriate or weak secondary; little reasoning.",
@@ -129,8 +129,8 @@ Communication & Referencing	Clear structure, fluent writing, correct APA/Harvard
       "name": "Communication & Referencing",
       "weight": 3,
       "bands": {
-        "5": "Logical structure, fluent academic style; 0-1 language errors; APA/Harvard refs flawless; within word range.",
-        "4": "Clear structure; ≤3 errors; referencing minor issues.",
+        "5": "Logical structure, fluent academic style; 0-3 language errors; APA/Harvard refs flawless; within word range.",
+        "4": "Clear structure; ≤4 errors; referencing minor issues.",
         "3": "Adequate organisation; several errors; referencing flawed; slight word-count drift.",
         "2": "Disorganised; frequent errors; poor referencing; major word-count breach.",
         "1": "Ineffective communication or plagiarism."
