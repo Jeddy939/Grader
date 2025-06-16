@@ -1,0 +1,14 @@
+2025-06-16 09:56:02,076 - INFO - Starting AI Draft Feedback Generator...
+2025-06-16 09:56:02,096 - INFO - --- Processing file (1/1): Psychological Disorder Case Study.docx ---
+2025-06-16 09:56:02,140 - INFO - Extracted approx. 1076 words from Psychological Disorder Case Study.docx.
+2025-06-16 09:56:02,140 - INFO - Using Gemini model: gemini-1.5-flash-latest
+2025-06-16 09:56:02,141 - INFO - Sending request to Gemini API...
+2025-06-16 09:56:13,016 - INFO - Received response from Gemini API.
+2025-06-16 09:56:13,100 - INFO - Draft feedback report saved to: output_draft_feedback\Psychological Disorder Case Study_draft_feedback.docx
+2025-06-16 09:56:13,101 - INFO - Successfully generated draft feedback for: Psychological Disorder Case Study.docx
+2025-06-16 09:56:13,102 - INFO - --- Draft Feedback Generation Complete ---
+2025-06-16 09:56:13,107 - INFO - Total files found in input folder: 1
+2025-06-16 09:56:13,107 - INFO - Files attempted for processing: 1
+2025-06-16 09:56:13,107 - INFO - Successfully generated draft feedback for: 1 files
+2025-06-16 09:56:13,108 - INFO - Draft feedback reports saved in: output_draft_feedback
+2025-06-16 09:56:13,108 - INFO - Log file saved at: draft_grading_process.log
