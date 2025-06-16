@@ -55,12 +55,14 @@ def get_student_name_from_filename(filename):
 
 
 def extract_text_from_file(filepath):
-    """Extracts text from .docx, .pdf, or attempts plain text."""
+    """Extracts text and author metadata from supported files."""
     _, extension = os.path.splitext(filepath)
     text = ""
+    doc_author = None
     try:
         if extension.lower() == ".docx":
             doc = DocxDocument(filepath)
+            doc_author = doc.core_properties.author or None
             for para in doc.paragraphs:
                 text += para.text + "\n"
         elif extension.lower() == ".pdf":
@@ -79,26 +81,23 @@ def extract_text_from_file(filepath):
             with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
 
-        # Basic cleanup
-        text = re.sub(
-            r"\s{3,}", "\n\n", text
-        ).strip()  # Consolidate multiple spaces/newlines
+        text = re.sub(r"\s{3,}", "\n\n", text).strip()
         if not text.strip():
             logging.warning(f"No text extracted or file is empty: {filepath}")
-            return None
-        return text
+            return None, None
+        return text, doc_author
 
     except FileNotFoundError:
         logging.error(f"File not found: {filepath}")
-        return None
+        return None, None
     except PyPDF2.errors.PdfReadError:
         logging.error(
             f"Could not read PDF (possibly corrupted or password protected): {filepath}"
         )
-        return None
+        return None, None
     except Exception as e:
         logging.error(f"Error extracting text from {filepath}: {e}")
-        return None
+        return None, None
 
 
 def load_master_prompt():
@@ -203,11 +202,13 @@ def parse_gemini_yaml_response(response_text):
         return None
 
 
-def format_feedback_as_docx(yaml_data, output_filepath, student_identifier):
+def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_author=None):
     """Formats the YAML data into a human-readable DOCX report."""
     try:
         doc = DocxDocument()
         doc.add_heading(f"Feedback Report for: {student_identifier}", level=1)
+        if doc_author:
+            doc.add_paragraph(f"Author (from file metadata): {doc_author}")
 
         # Overall Grade and Points
         grade_info = yaml_data.get("assistant_grade", {})
@@ -331,7 +332,7 @@ def main():
             student_name_guess if student_name_guess else os.path.splitext(filename)[0]
         )
 
-        extracted_text = extract_text_from_file(filepath)
+        extracted_text, doc_author = extract_text_from_file(filepath)
         if not extracted_text:
             logging.warning(
                 f"Skipping {filename} due to text extraction failure or empty content."
@@ -375,7 +376,7 @@ def main():
             OUTPUT_FOLDER, f"{output_filename_base}_graded.docx"
         )
 
-        format_feedback_as_docx(parsed_data, output_docx_path, student_identifier)
+        format_feedback_as_docx(parsed_data, output_docx_path, student_identifier, doc_author=doc_author)
         successful_grades += 1
         logging.info(f"Successfully processed and graded: {filename}")
 
