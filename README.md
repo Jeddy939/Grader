@@ -56,5 +56,6 @@ Each script processes all files in `input_assessments/` and writes DOCX reports 
 ## Notes
 
 - PDF text extraction uses `PyPDF2`; encrypted or malformed PDFs may fail.
+- DOCX extraction now captures text inside tables.
 - The repository currently includes a Windows-based `venv` directory which can be removed if you prefer to create your own environment.
 - There are no automated tests.
