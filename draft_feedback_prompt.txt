@@ -287,5 +287,5 @@ This is a good start on your case study, and you've clearly put effort into seve
 *   **Treatment & Justification:** Link your chosen treatments more directly to specific symptoms identified earlier, and briefly explain why these are evidence-based for the diagnosed disorder.
 *   **Communication & Referencing:** Conduct a careful proofread for any language errors and ensure your APA/Harvard referencing (both in-text and list) is flawless and complete.
 
-### STUDENT_ASSESSMENT_TEXT_TO_GRADE:
+### STUDENT_SUBMISSION_TEXT_TO_GRADE:
 {{STUDENT_SUBMISSION_TEXT_HERE}}
