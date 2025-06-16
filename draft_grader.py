@@ -48,7 +48,6 @@ def get_student_identifier_from_filename(filename):
     return os.path.splitext(filename)[0]
 
 
-codex/include-author-name-in-output-filename
 def sanitize_for_filename(text):
     """Sanitize text so it is safe for filenames."""
     if not text:
@@ -69,7 +68,6 @@ def extract_text_from_docx(doc):
                     if para.text:
                         text_parts.append(para.text)
     return "\n".join(text_parts)
- main
 
 
 def extract_text_from_file(filepath):
@@ -84,13 +82,11 @@ def extract_text_from_file(filepath):
     try:
         if extension.lower() == ".docx":
             doc = DocxDocument(filepath)
- codex/include-author-name-in-output-filename
             doc_author = doc.core_properties.author or None
             for para in doc.paragraphs:
                 text += para.text + "\n"
 
             text = extract_text_from_docx(doc)
-main
         elif extension.lower() == ".pdf":
             # Lazy import PyPDF2 to avoid error if not installed and not processing PDFs
             try:
