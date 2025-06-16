@@ -54,6 +54,21 @@ def get_student_name_from_filename(filename):
     return None
 
 
+def extract_text_from_docx(doc):
+    """Extract text from paragraphs and tables in a DOCX Document."""
+    text_parts = []
+    for para in doc.paragraphs:
+        if para.text:
+            text_parts.append(para.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    if para.text:
+                        text_parts.append(para.text)
+    return "\n".join(text_parts)
+
+
 def extract_text_from_file(filepath):
     """Extracts text and author metadata from supported files."""
     _, extension = os.path.splitext(filepath)
@@ -63,8 +78,7 @@ def extract_text_from_file(filepath):
         if extension.lower() == ".docx":
             doc = DocxDocument(filepath)
             doc_author = doc.core_properties.author or None
-            for para in doc.paragraphs:
-                text += para.text + "\n"
+            text = extract_text_from_docx(doc)
         elif extension.lower() == ".pdf":
             with open(filepath, "rb") as f:
                 reader = PyPDF2.PdfReader(f)

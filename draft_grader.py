@@ -48,6 +48,21 @@ def get_student_identifier_from_filename(filename):
     return os.path.splitext(filename)[0]
 
 
+def extract_text_from_docx(doc):
+    """Extract text from paragraphs and tables in a DOCX Document."""
+    text_parts = []
+    for para in doc.paragraphs:
+        if para.text:
+            text_parts.append(para.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    if para.text:
+                        text_parts.append(para.text)
+    return "\n".join(text_parts)
+
+
 def extract_text_from_file(filepath):
     """Extracts text from .docx, .pdf, or attempts plain text."""
     _, extension = os.path.splitext(filepath)
@@ -55,8 +70,7 @@ def extract_text_from_file(filepath):
     try:
         if extension.lower() == ".docx":
             doc = DocxDocument(filepath)
-            for para in doc.paragraphs:
-                text += para.text + "\n"
+            text = extract_text_from_docx(doc)
         elif extension.lower() == ".pdf":
             # Lazy import PyPDF2 to avoid error if not installed and not processing PDFs
             try:
