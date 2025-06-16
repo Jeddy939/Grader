@@ -266,5 +266,5 @@ assistant_grade:
     communication: {band: 2, points: 2}
   overall_grade: B
 
-### STUDENT_ASSESSMENT_TEXT_TO_GRADE:
+### STUDENT_SUBMISSION_TEXT_TO_GRADE:
 {{STUDENT_SUBMISSION_TEXT_HERE}}

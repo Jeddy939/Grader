@@ -123,7 +123,7 @@ def construct_full_prompt(student_text, master_prompt_template):
         # Fallback: append student text if placeholder is missing
         return (
             master_prompt_template
-            + "\n\n### STUDENT_ASSESSMENT_TEXT_TO_GRADE:\n"
+            + "\n\n### STUDENT_SUBMISSION_TEXT_TO_GRADE:\n"
             + student_text
         )
     return master_prompt_template.replace(

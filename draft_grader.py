@@ -156,7 +156,7 @@ def construct_full_prompt(student_text, master_prompt_template, scenario_text=No
     placeholder = "{{STUDENT_SUBMISSION_TEXT_HERE}}"
     if placeholder not in master_prompt_template:
         logging.error(f"Placeholder '{placeholder}' not found in draft prompt template.")
-        return master_prompt_template + "\n\n### STUDENT_ASSESSMENT_TEXT_TO_GRADE:\n" + combined_text
+        return master_prompt_template + "\n\n### STUDENT_SUBMISSION_TEXT_TO_GRADE:\n" + combined_text
     return master_prompt_template.replace(placeholder, combined_text)
 
 
