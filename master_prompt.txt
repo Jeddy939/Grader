@@ -1,4 +1,4 @@
-2 . Student-facing rubric (concise)
+### Student-Facing Rubric (Concise)
 Criterion	A	B	C	D	E
 Knowledge & Symptom Analysis	Precise definition; ≥5 normal and ≥5 disorder-related experiences correctly classified and justified.	Mostly accurate classification; minor gaps.	Basic explanation; some errors.	Limited/confused classification.	Inaccurate or missing.
 B-P-S Factors	Biological, psychological and social factors clearly linked and interacting.	Most factors linked; minor gaps.	Factors listed; weak links.	Few factors; unclear links.	Incorrect / missing.
