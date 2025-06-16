@@ -13,6 +13,8 @@ INPUT_FOLDER = "input_assessments"
 OUTPUT_FOLDER = "output_draft_feedback" # Separate output folder for draft feedback
 DRAFT_PROMPT_FILE = "draft_feedback_prompt.txt" # New prompt file
 LOG_FILE = "draft_grading_process.log"
+# Folder containing scenario text files
+SCENARIO_FOLDER = "Diagnosis scenarios"
 # Set to True if you want to add a delay between API calls (e.g., to respect free tier limits)
 USE_API_DELAY = True
 API_DELAY_SECONDS = 20 # Delay in seconds (e.g., 20-30 for gemini-1.5-flash)
@@ -108,14 +110,54 @@ def load_draft_prompt_template():
         logging.error(f"Error reading draft prompt file: {e}")
         raise
 
-def construct_full_prompt(student_text, master_prompt_template):
-    """Inserts student text into the master prompt template."""
+def get_scenario_mapping():
+    """Returns a mapping of scenario name keywords to file paths."""
+    mapping = {}
+    if not os.path.isdir(SCENARIO_FOLDER):
+        logging.warning(f"Scenario folder '{SCENARIO_FOLDER}' not found.")
+        return mapping
+    for fname in os.listdir(SCENARIO_FOLDER):
+        if fname.lower().endswith('.txt'):
+            base = os.path.splitext(fname)[0]  # e.g., 'sam_d'
+            keywords = base.replace('_', ' ').lower()  # 'sam d'
+            mapping[keywords] = os.path.join(SCENARIO_FOLDER, fname)
+    return mapping
+
+
+def detect_scenario(student_text, scenario_map):
+    """Attempts to detect which scenario is referenced in the student's text."""
+    text_lower = student_text.lower()
+    for keywords, path in scenario_map.items():
+        if keywords in text_lower:
+            return path
+        first_name = keywords.split()[0]
+        if re.search(rf"\b{re.escape(first_name)}\b", text_lower):
+            return path
+    return None
+
+
+def load_text_file(path):
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    except Exception as e:
+        logging.error(f"Failed to load scenario text '{path}': {e}")
+        return None
+
+def construct_full_prompt(student_text, master_prompt_template, scenario_text=None):
+    """Inserts student (and scenario) text into the prompt template."""
+    combined_text = student_text
+    if scenario_text:
+        combined_text = (
+            "### REFERENCED SCENARIO\n" + scenario_text + "\n\n" +
+            "### STUDENT SUBMISSION\n" + student_text
+        )
+
     placeholder = "{{STUDENT_SUBMISSION_TEXT_HERE}}"
     if placeholder not in master_prompt_template:
         logging.error(f"Placeholder '{placeholder}' not found in draft prompt template.")
-        # Fallback: append student text if placeholder is missing
-        return master_prompt_template + "\n\n### STUDENT_ASSESSMENT_TEXT_TO_GRADE:\n" + student_text
-    return master_prompt_template.replace(placeholder, student_text)
+        return master_prompt_template + "\n\n### STUDENT_ASSESSMENT_TEXT_TO_GRADE:\n" + combined_text
+    return master_prompt_template.replace(placeholder, combined_text)
 
 
 def call_gemini_api(prompt_text, api_key):
@@ -176,6 +218,7 @@ def main():
     try:
         api_key = load_api_key()
         draft_prompt_template = load_draft_prompt_template()
+        scenario_map = get_scenario_mapping()
     except Exception as e:
         logging.critical(f"Initialization failed: {e}")
         return
@@ -210,7 +253,16 @@ def main():
         if word_count < 50 : # Arbitrary threshold
              logging.warning(f"Extracted text for {filename} is very short ({word_count} words). Feedback might be limited.")
 
-        full_prompt = construct_full_prompt(extracted_text, draft_prompt_template)
+        scenario_path = detect_scenario(extracted_text, scenario_map)
+        scenario_text = load_text_file(scenario_path) if scenario_path else None
+        if scenario_text:
+            logging.info(
+                f"Detected scenario text from '{os.path.basename(scenario_path)}' for {filename}."
+            )
+        else:
+            logging.info("No specific scenario detected; proceeding without scenario context.")
+
+        full_prompt = construct_full_prompt(extracted_text, draft_prompt_template, scenario_text)
         
         # For debugging, save the full prompt sent to the API
         # prompt_debug_path = os.path.join(OUTPUT_FOLDER, f"{student_identifier}_draft_prompt_sent.txt")
