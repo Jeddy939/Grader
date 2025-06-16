@@ -247,7 +247,7 @@ APA. (2013).
    a. Check anchor phrases.
    b. Select the highest band whose anchors are fully met.
    c. Apply ‘rules’ (word-count, wrong diagnosis caps).
-3. Output ONLY in the following YAML:
+3. Output **only** the YAML below inside a fenced code block (` ```yaml ... ``` `):
 
 assistant_reasons:
   - criterion: symptom_analysis
