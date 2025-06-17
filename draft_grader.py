@@ -12,6 +12,7 @@ from docx import Document as DocxDocument
 INPUT_FOLDER = "input_assessments"
 OUTPUT_FOLDER = "output_draft_feedback" # Separate output folder for draft feedback
 DRAFT_PROMPT_FILE = "draft_feedback_prompt.txt" # New prompt file
+REVIEW_PROMPT_FILE = "feedback_review_prompt.txt"  # Prompt for comparing feedback
 LOG_FILE = "draft_grading_process.log"
 # Folder containing scenario text files
 SCENARIO_FOLDER = "Diagnosis scenarios"
@@ -140,6 +141,18 @@ def load_draft_prompt_template():
         logging.error(f"Error reading draft prompt file: {e}")
         raise
 
+def load_review_prompt_template():
+    """Loads the feedback review prompt template from file."""
+    try:
+        with open(REVIEW_PROMPT_FILE, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        logging.error(f"Review prompt file '{REVIEW_PROMPT_FILE}' not found.")
+        raise
+    except Exception as e:
+        logging.error(f"Error reading review prompt file: {e}")
+        raise
+
 def get_scenario_mapping():
     """Returns a mapping of scenario name keywords to file paths."""
     mapping = {}
@@ -226,6 +239,29 @@ def call_gemini_api(prompt_text, api_key):
             logging.error(f"Google API Error Message: {e.message}")
         return None
 
+def review_feedback(student_text, feedback_text, api_key, review_prompt_template=None):
+    """Sends student text and AI feedback to Gemini for accuracy review."""
+    if review_prompt_template is None:
+        try:
+            review_prompt_template = load_review_prompt_template()
+        except Exception:
+            return None
+
+    prompt = review_prompt_template
+    if "{{STUDENT_SUBMISSION_TEXT_HERE}}" in prompt:
+        prompt = prompt.replace("{{STUDENT_SUBMISSION_TEXT_HERE}}", student_text)
+    else:
+        logging.warning("Student submission placeholder missing in review prompt template")
+        prompt += f"\n\nSTUDENT SUBMISSION:\n{student_text}"
+
+    if "{{DRAFT_FEEDBACK_TEXT_HERE}}" in prompt:
+        prompt = prompt.replace("{{DRAFT_FEEDBACK_TEXT_HERE}}", feedback_text)
+    else:
+        logging.warning("Draft feedback placeholder missing in review prompt template")
+        prompt += f"\n\nAI DRAFT FEEDBACK:\n{feedback_text}"
+
+    return call_gemini_api(prompt, api_key)
+
 def _add_formatted_run(paragraph, text):
     """Adds text to a paragraph, interpreting **bold** markdown syntax."""
     parts = re.split(r"(\*\*[^*]+\*\*)", text)
@@ -278,6 +314,7 @@ def main():
     try:
         api_key = load_api_key()
         draft_prompt_template = load_draft_prompt_template()
+        review_prompt_template = load_review_prompt_template()
         scenario_map = get_scenario_mapping()
     except Exception as e:
         logging.critical(f"Initialization failed: {e}")
@@ -331,7 +368,7 @@ def main():
         # logging.info(f"Full draft prompt saved for debugging: {prompt_debug_path}")
 
         ai_feedback_prose = call_gemini_api(full_prompt, api_key)
-        
+
         if not ai_feedback_prose:
             logging.warning(f"Skipping {filename} due to Gemini API call failure or empty response.")
             continue
@@ -340,8 +377,18 @@ def main():
         if doc_author:
             output_filename_base += f"_{sanitize_for_filename(doc_author)}"
         output_docx_path = os.path.join(OUTPUT_FOLDER, f"{output_filename_base}_draft_feedback.docx")
-        
+
         save_draft_feedback_to_docx(ai_feedback_prose, output_docx_path, student_identifier)
+
+        review_text = review_feedback(extracted_text, ai_feedback_prose, api_key, review_prompt_template)
+        if review_text:
+            review_path = os.path.join(OUTPUT_FOLDER, f"{output_filename_base}_feedback_review.txt")
+            try:
+                with open(review_path, "w", encoding="utf-8") as rf:
+                    rf.write(review_text)
+                logging.info(f"Feedback review saved to: {review_path}")
+            except Exception as e:
+                logging.error(f"Failed to save feedback review for {student_identifier}: {e}")
         successful_feedback_generations +=1
         logging.info(f"Successfully generated draft feedback for: {filename}")
 
