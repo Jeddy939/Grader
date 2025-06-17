@@ -8,6 +8,7 @@ This repository contains Python scripts to generate automated grading reports an
 - `draft_grader.py` – generates formative feedback for draft submissions without assigning a grade.
 - `master_prompt.txt` – prompt template and rubric for the main grader.
 - `draft_feedback_prompt.txt` – prompt for draft feedback.
+- `feedback_review_prompt.txt` – prompt used to check the AI feedback against the student's submission.
 - `grading_process.log` and `draft_grading_process.log` – example log files created by the scripts.
 - `venv/` – Python virtual environment containing all dependencies (committed for portability).
 
@@ -51,6 +52,10 @@ For draft feedback instead of a final grade:
 python draft_grader.py
 ```
 
+`draft_grader.py` now also runs a second pass that compares the AI's feedback
+with the student's original text. The result is saved as a `_feedback_review.txt`
+file next to each DOCX report.
+
 Each script processes all files in `input_assessments/` and writes DOCX reports to the appropriate output folder. Logs describing progress and any errors are written to `grading_process.log` or `draft_grading_process.log`.
 
 ## Notes
@@ -59,3 +64,4 @@ Each script processes all files in `input_assessments/` and writes DOCX reports 
 - DOCX extraction now captures text inside tables.
 - The repository currently includes a Windows-based `venv` directory which can be removed if you prefer to create your own environment.
 - There are no automated tests.
+- Each run of `draft_grader.py` also outputs a `_feedback_review.txt` file summarising any inaccuracies in the AI feedback or areas already addressed in the submission.

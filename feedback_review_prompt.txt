@@ -1,0 +1,13 @@
+You are an AI assistant tasked with reviewing draft feedback for a psychology case study.
+Compare the student's submission with the AI-generated feedback.
+Point out any inaccurate remarks or suggestions that the student has already satisfied.
+If all feedback seems accurate, state that briefly.
+Respond with a short list of bullet points.
+
+### STUDENT_SUBMISSION
+{{STUDENT_SUBMISSION_TEXT_HERE}}
+
+### AI_DRAFT_FEEDBACK
+{{DRAFT_FEEDBACK_TEXT_HERE}}
+
+### REVIEW_OUTPUT
