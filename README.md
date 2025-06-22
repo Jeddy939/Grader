@@ -58,6 +58,10 @@ file next to each DOCX report.
 
 Each script processes all files in `input_assessments/` and writes DOCX reports to the appropriate output folder. Logs describing progress and any errors are written to `grading_process.log` or `draft_grading_process.log`.
 
+## Grade Calculation
+
+The overall grade in each report is derived from the rubric points returned by the AI. All points from `assistant_grade.breakdown` are summed and divided by the maximum (25). This ratio is multiplied by five and rounded to the nearest whole number to determine the band, which is then mapped to a letter using the rubric's grading scale.
+
 ## Notes
 
 - PDF text extraction uses `PyPDF2`; encrypted or malformed PDFs may fail.

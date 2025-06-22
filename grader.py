@@ -216,6 +216,27 @@ def parse_gemini_yaml_response(response_text):
         return None
 
 
+def compute_overall_grade(breakdown):
+    """Compute a letter grade from rubric breakdown points."""
+    if not isinstance(breakdown, dict):
+        return "N/A"
+
+    total_possible = 25
+    total_points = 0
+    for item in breakdown.values():
+        try:
+            total_points += int(item.get("points", 0))
+        except Exception:
+            continue
+
+    ratio = total_points / float(total_possible)
+    band = round(ratio * 5)
+    band = max(1, min(5, band))
+
+    grading_scale = {"5": "A", "4": "B", "3": "C", "2": "D", "1": "E"}
+    return grading_scale.get(str(band), "N/A")
+
+
 def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_author=None):
     """Formats the YAML data into a human-readable DOCX report."""
     try:
@@ -226,9 +247,12 @@ def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_
 
         # Overall Grade and Points
         grade_info = yaml_data.get("assistant_grade", {})
-        overall_grade = grade_info.get("overall_grade", "N/A")
-        total_points = grade_info.get("total_points", "N/A")
-        # Assuming max points is 25 as per rubric JSON, or you can extract it if present
+        breakdown = grade_info.get("breakdown", {})
+        overall_grade = compute_overall_grade(breakdown)
+        try:
+            total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
+        except Exception:
+            total_points = grade_info.get("total_points", "N/A")
         max_total_points = 25
 
         doc.add_heading("Overall Assessment", level=2)
@@ -239,7 +263,6 @@ def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_
         # Criteria Breakdown
         doc.add_heading("Detailed Breakdown by Criterion", level=2)
         reasons = yaml_data.get("assistant_reasons", [])
-        breakdown = grade_info.get("breakdown", {})
 
         # You'll need to map criterion IDs from 'assistant_reasons' (e.g., 'symptom_analysis')
         # to their full names and max points if you want to display them nicely.
