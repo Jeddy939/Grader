@@ -4,8 +4,6 @@ import logging
 from dotenv import load_dotenv
 import google.generativeai as genai
 from docx import Document as DocxDocument  # To avoid clash with local 'Document'
-from docx.shared import Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 import PyPDF2
 import yaml  # PyYAML
 
