@@ -12,6 +12,7 @@ from docx import Document as DocxDocument
 INPUT_FOLDER = "input_assessments"
 OUTPUT_FOLDER = "output_draft_feedback" # Separate output folder for draft feedback
 DRAFT_PROMPT_FILE = "draft_feedback_prompt.txt" # New prompt file
+RUBRIC_PROMPT_FILE = "rubric_prompt.json"  # JSON version of rubric for prompts
 REVIEW_PROMPT_FILE = "feedback_review_prompt.txt"  # Prompt for comparing feedback
 LOG_FILE = "draft_grading_process.log"
 # Folder containing scenario text files
@@ -130,16 +131,30 @@ def extract_text_from_file(filepath):
         return None, None
 
 def load_draft_prompt_template():
-    """Loads the draft feedback prompt template from file."""
+    """Load the draft feedback prompt and inject the rubric JSON if needed."""
     try:
         with open(DRAFT_PROMPT_FILE, "r", encoding="utf-8") as f:
-            return f.read()
+            template = f.read()
     except FileNotFoundError:
         logging.error(f"Draft prompt file '{DRAFT_PROMPT_FILE}' not found.")
         raise
     except Exception as e:
         logging.error(f"Error reading draft prompt file: {e}")
         raise
+
+    placeholder = "{{RUBRIC_JSON_HERE}}"
+    if placeholder in template:
+        try:
+            with open(RUBRIC_PROMPT_FILE, "r", encoding="utf-8") as rf:
+                rubric_json = rf.read().strip()
+            template = template.replace(placeholder, rubric_json)
+        except FileNotFoundError:
+            logging.error(f"Rubric JSON file '{RUBRIC_PROMPT_FILE}' not found.")
+            raise
+        except Exception as e:
+            logging.error(f"Error reading rubric JSON file: {e}")
+            raise
+    return template
 
 def load_review_prompt_template():
     """Loads the feedback review prompt template from file."""
