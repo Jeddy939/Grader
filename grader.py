@@ -305,6 +305,74 @@ def extract_new_grade_from_review(review_text):
     return None
 
 
+def apply_criteria_adjustments(parsed_data, adjustments):
+    """Apply band changes from review to the parsed YAML data."""
+    if not adjustments:
+        return
+
+    grade_section = parsed_data.get("assistant_grade", {})
+    breakdown = grade_section.get("breakdown", {})
+    for crit, new_band in adjustments.items():
+        if crit in breakdown:
+            breakdown[crit]["band"] = new_band
+            breakdown[crit]["points"] = new_band
+
+    # Update total points if any changes were applied
+    try:
+        total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
+        grade_section["total_points"] = total_points
+    except Exception:
+        pass
+
+def extract_criteria_adjustments(review_text):
+    """Parse review text for suggested band adjustments for specific criteria."""
+    if not review_text:
+        return {}
+
+    criteria_aliases = {
+        "symptom_analysis": [
+            "symptom analysis",
+            "knowledge & symptom analysis",
+            "knowledge and symptom analysis",
+            "criterion 1",
+        ],
+        "bps_factors": [
+            "bps factors",
+            "b-p-s factors",
+            "biological, psychological & social factors",
+            "criterion 2",
+        ],
+        "diagnostic_primary": [
+            "diagnostic primary",
+            "primary diagnosis accuracy",
+            "primary diagnosis",
+            "criterion 3",
+        ],
+        "diagnostic_diff": [
+            "differential diagnosis reasoning",
+            "differential diagnosis",
+            "criterion 4",
+        ],
+        "treatment": ["treatment selection", "treatment", "criterion 5"],
+        "communication": ["communication & referencing", "communication", "criterion 6"],
+    }
+
+    adjustments = {}
+    for line in review_text.splitlines():
+        lower_line = line.lower()
+        for cid, aliases in criteria_aliases.items():
+            if any(alias in lower_line for alias in aliases):
+                numbers = re.findall(r"([1-5])", line)
+                if numbers:
+                    try:
+                        new_band = int(numbers[-1])
+                        adjustments[cid] = new_band
+                    except ValueError:
+                        pass
+                break
+    return adjustments
+
+
 def format_feedback_as_docx(
     yaml_data, output_filepath, student_identifier, doc_author=None, override_grade=None
 ):
@@ -501,6 +569,10 @@ def main():
                     logging.info(
                         f"Applying grade override from review: {override_grade}"
                     )
+                adjustments = extract_criteria_adjustments(review_text)
+                if adjustments:
+                    apply_criteria_adjustments(parsed_data, adjustments)
+                    logging.info(f"Applied criterion adjustments: {adjustments}")
             except Exception as e:
                 logging.error(f"Failed to save grade review for {student_identifier}: {e}")
 
