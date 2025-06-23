@@ -140,21 +140,46 @@ def load_grade_review_prompt_template():
         raise
 
 
-def construct_full_prompt(student_text, master_prompt_template):
-    """Inserts student text into the master prompt template."""
-    if "{{STUDENT_SUBMISSION_TEXT_HERE}}" not in master_prompt_template:
-        logging.error(
-            "Placeholder '{{STUDENT_SUBMISSION_TEXT_HERE}}' not found in master prompt."
+def construct_full_prompt(
+    student_text, master_prompt_template, *, raise_on_missing=True
+):
+    """Insert student text into the master prompt template.
+
+    Parameters
+    ----------
+    student_text : str
+        The extracted text of the student's submission.
+    master_prompt_template : str
+        The prompt template loaded from ``master_prompt.txt``.
+    raise_on_missing : bool, optional
+        If ``True`` (default), a ``ValueError`` is raised when the required
+        placeholder is not present in ``master_prompt_template``. The student
+        text is still appended to the returned prompt to avoid an empty
+        submission.
+    """
+
+    placeholder = "{{STUDENT_SUBMISSION_TEXT_HERE}}"
+
+    if placeholder not in master_prompt_template:
+        warning_msg = (
+            f"Placeholder '{placeholder}' not found in master prompt template. "
+            "Student text will be appended to the end of the prompt."
         )
-        # Fallback: append student text if placeholder is missing
-        return (
+        logging.warning(warning_msg)
+
+        fallback_prompt = (
             master_prompt_template
             + "\n\n### STUDENT_SUBMISSION_TEXT_TO_GRADE:\n"
             + student_text
         )
-    return master_prompt_template.replace(
-        "{{STUDENT_SUBMISSION_TEXT_HERE}}", student_text
-    )
+
+        if raise_on_missing:
+            # Raising an exception alerts the operator to fix the prompt file
+            raise ValueError(warning_msg)
+
+        return fallback_prompt
+
+    return master_prompt_template.replace(placeholder, student_text)
 
 
 def call_gemini_api(prompt_text, api_key):
