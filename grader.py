@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 import logging
 from dotenv import load_dotenv
@@ -8,12 +9,13 @@ import PyPDF2
 import yaml  # PyYAML
 
 # --- Configuration ---
-INPUT_FOLDER = "input_assessments"
-OUTPUT_FOLDER = "output_feedback"
-MASTER_PROMPT_FILE = "master_prompt.txt"
+INPUT_FOLDER = Path("input_assessments")
+OUTPUT_FOLDER = Path("output_feedback")
+MASTER_PROMPT_FILE = Path("master_prompt.txt")
 LOG_FILE = "grading_process.log"
 SUMMARY_FILE = "grading_summary.csv"
-GRADE_REVIEW_PROMPT_FILE = "grade_review_prompt.txt"
+GRADE_REVIEW_PROMPT_FILE = Path("grade_review_prompt.txt")
+RUBRIC_FILE = Path("rubric.yml")
 
 # Setup basic logging
 logging.basicConfig(
@@ -43,7 +45,7 @@ def get_student_name_from_filename(filename):
     Attempts to extract a student name from filename.
     Example: "JohnDoe_Assignment1.docx" -> "JohnDoe"
     """
-    name_part = os.path.splitext(filename)[0]
+    name_part = Path(filename).stem
     # Simple heuristic: look for parts separated by common delimiters
     # that might indicate a name. This can be improved.
     potential_name = re.split(r"[_\-\s.]", name_part)[0]
@@ -71,7 +73,8 @@ def extract_text_from_docx(doc):
 
 def extract_text_from_file(filepath):
     """Extracts text and author metadata from supported files."""
-    _, extension = os.path.splitext(filepath)
+    filepath = Path(filepath)
+    extension = filepath.suffix
     text = ""
     doc_author = None
     try:
@@ -137,6 +140,19 @@ def load_grade_review_prompt_template():
         raise
     except Exception as e:
         logging.error(f"Error reading grade review prompt file: {e}")
+        raise
+
+
+def load_rubric_config():
+    """Load grading rubric from YAML configuration."""
+    try:
+        with open(RUBRIC_FILE, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        logging.error(f"Rubric file '{RUBRIC_FILE}' not found.")
+        raise
+    except Exception as e:
+        logging.error(f"Error reading rubric file: {e}")
         raise
 
 
@@ -278,14 +294,12 @@ def parse_gemini_yaml_response(response_text):
         cleaned_response = _sanitize_unescaped_quotes(cleaned_response)
 
         parsed_data = yaml.safe_load(cleaned_response)
-        # Basic validation of expected structure
-        if "assistant_reasons" in parsed_data and "assistant_grade" in parsed_data:
+        if "assistant_reasons" in parsed_data:
             return parsed_data
-        else:
-            logging.error(
-                f"Parsed YAML does not have expected structure. Parsed: {parsed_data}"
-            )
-            return None
+        logging.error(
+            f"Parsed YAML does not have expected structure. Parsed: {parsed_data}"
+        )
+        return None
     except yaml.YAMLError as e:
         logging.error(
             f"Failed to parse YAML response from Gemini: {e}\nRaw response:\n{response_text}"
@@ -298,12 +312,11 @@ def parse_gemini_yaml_response(response_text):
         return None
 
 
-def compute_overall_grade(breakdown):
+def compute_overall_grade(breakdown, grade_bands, total_possible):
     """Compute a letter grade from rubric breakdown points."""
     if not isinstance(breakdown, dict):
         return "N/A"
 
-    total_possible = 30
     total_points = 0
     for item in breakdown.values():
         try:
@@ -311,22 +324,64 @@ def compute_overall_grade(breakdown):
         except Exception:
             continue
 
-    # Grade cutoffs are now based directly on raw points. 24–30 points = A,
-    # 18–23 = B, 14–17 = C. Values below 14 fall back to the original band
-    # mapping for D and E bands.
-    if total_points >= 24:
+    if total_points >= grade_bands.get("A", total_possible):
         return "A"
-    if total_points >= 18:
+    if total_points >= grade_bands.get("B", 0):
         return "B"
-    if total_points >= 14:
+    if total_points >= grade_bands.get("C", 0):
         return "C"
 
-    ratio = total_points / float(total_possible)
-    band = round(ratio * 5)
-    band = max(1, min(5, band))
+    if total_points >= total_possible * grade_bands.get("D_ratio", 0):
+        return "D"
+    if total_points >= total_possible * grade_bands.get("E_ratio", 0):
+        return "E"
+    return "E"
 
-    grading_scale = {"2": "D", "1": "E"}
-    return grading_scale.get(str(band), "E")
+
+def calculate_final_grade(bands_data, word_count, rubric_config):
+    """Apply rubric rules and compute final grade breakdown."""
+    criteria_cfg = rubric_config.get("criteria", {})
+    grade_bands = rubric_config.get("grade_bands", {})
+    total_possible = rubric_config.get("total_points_possible", 0)
+
+    bands = bands_data.copy()
+
+    # Apply rules deterministically
+    for rule in rubric_config.get("rules", []):
+        name = rule.get("name")
+        try:
+            condition = rule.get("condition", "")
+            local_vars = {f"{k}_band": bands.get(k) for k in bands}
+            local_vars["word_count"] = word_count
+            if eval(condition, {}, local_vars):
+                if rule.get("action") == "set_band":
+                    target = rule.get("target")
+                    if target:
+                        bands[target] = rule.get("band", bands.get(target))
+                elif rule.get("action") == "cap_points":
+                    target = rule.get("target")
+                    points_cap = rule.get("points")
+                    if target and target in bands:
+                        bands[target] = min(bands[target], points_cap)
+        except Exception:
+            logging.warning(f"Failed to evaluate rule '{name}'.")
+
+    breakdown = {}
+    total_points = 0
+    for cid, cfg in criteria_cfg.items():
+        band = int(bands.get(cid, 1))
+        max_points = int(cfg.get("max_points", band))
+        points = min(band, max_points)
+        breakdown[cid] = {"band": band, "points": points}
+        total_points += points
+
+    overall_grade = compute_overall_grade(breakdown, grade_bands, total_possible)
+
+    return {
+        "total_points": total_points,
+        "breakdown": breakdown,
+        "overall_grade": overall_grade,
+    }
 
 
 def review_grade(student_text, grade_yaml_text, api_key, review_prompt_template=None):
@@ -374,7 +429,7 @@ def extract_new_grade_from_review(review_text):
     return None
 
 
-def apply_criteria_adjustments(parsed_data, adjustments):
+def apply_criteria_adjustments(parsed_data, adjustments, rubric_config):
     """Apply band changes from review to the parsed YAML data."""
     if not adjustments:
         return
@@ -384,66 +439,38 @@ def apply_criteria_adjustments(parsed_data, adjustments):
     for crit, new_band in adjustments.items():
         if crit in breakdown:
             breakdown[crit]["band"] = new_band
-            breakdown[crit]["points"] = new_band
+            max_pts = rubric_config.get("criteria", {}).get(crit, {}).get("max_points", new_band)
+            breakdown[crit]["points"] = min(new_band, max_pts)
 
-    # Update total points if any changes were applied
-    try:
-        total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
-        grade_section["total_points"] = total_points
-    except Exception:
-        pass
+    total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
+    grade_section["total_points"] = total_points
+    grade_section["overall_grade"] = compute_overall_grade(
+        breakdown,
+        rubric_config.get("grade_bands", {}),
+        rubric_config.get("total_points_possible", 0),
+    )
 
 def extract_criteria_adjustments(review_text):
-    """Parse review text for suggested band adjustments for specific criteria."""
+    """Parse review text for suggested band adjustments using regex."""
     if not review_text:
         return {}
 
-    criteria_aliases = {
-        "symptom_analysis": [
-            "symptom analysis",
-            "knowledge & symptom analysis",
-            "knowledge and symptom analysis",
-            "criterion 1",
-        ],
-        "bps_factors": [
-            "bps factors",
-            "b-p-s factors",
-            "biological, psychological & social factors",
-            "criterion 2",
-        ],
-        "diagnostic_primary": [
-            "diagnostic primary",
-            "primary diagnosis accuracy",
-            "primary diagnosis",
-            "criterion 3",
-        ],
-        "diagnostic_diff": [
-            "differential diagnosis reasoning",
-            "differential diagnosis",
-            "criterion 4",
-        ],
-        "treatment": ["treatment selection", "treatment", "criterion 5"],
-        "communication": ["communication & referencing", "communication", "criterion 6"],
-    }
-
+    pattern = re.compile(r"ADJUSTMENT:\s*(\w+)\s*->\s*([1-5])", re.IGNORECASE)
     adjustments = {}
-    for line in review_text.splitlines():
-        lower_line = line.lower()
-        for cid, aliases in criteria_aliases.items():
-            if any(alias in lower_line for alias in aliases):
-                numbers = re.findall(r"([1-5])", line)
-                if numbers:
-                    try:
-                        new_band = int(numbers[-1])
-                        adjustments[cid] = new_band
-                    except ValueError:
-                        pass
-                break
+    for match in pattern.finditer(review_text):
+        crit = match.group(1)
+        band = int(match.group(2))
+        adjustments[crit] = band
     return adjustments
 
 
 def format_feedback_as_docx(
-    yaml_data, output_filepath, student_identifier, doc_author=None, override_grade=None
+    yaml_data,
+    output_filepath,
+    student_identifier,
+    rubric_config,
+    doc_author=None,
+    override_grade=None,
 ):
     """Formats the YAML data into a human-readable DOCX report."""
     try:
@@ -457,13 +484,15 @@ def format_feedback_as_docx(
         breakdown = grade_info.get("breakdown", {})
 
         ai_overall_grade = grade_info.get("overall_grade")
-        computed_grade = compute_overall_grade(breakdown)
+        computed_grade = compute_overall_grade(
+            breakdown, rubric_config.get("grade_bands", {}), rubric_config.get("total_points_possible", 0)
+        )
         final_grade = override_grade if override_grade else computed_grade
         try:
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
             total_points = grade_info.get("total_points", "N/A")
-        max_total_points = 30
+        max_total_points = rubric_config.get("total_points_possible", 0)
 
         doc.add_heading("Overall Assessment", level=2)
         if ai_overall_grade:
@@ -478,33 +507,12 @@ def format_feedback_as_docx(
         doc.add_heading("Detailed Breakdown by Criterion", level=2)
         reasons = yaml_data.get("assistant_reasons", [])
 
-        # You'll need to map criterion IDs from 'assistant_reasons' (e.g., 'symptom_analysis')
-        # to their full names and max points if you want to display them nicely.
-        # This mapping can be hardcoded or derived from your rubric JSON if it were loaded.
-        # For simplicity, we'll use the IDs for now.
-        # Example mapping (you'd get this from your RUBRIC_JSON ideally)
         rubric_criteria_details = {
-            "symptom_analysis": {
-                "name": "Knowledge & Symptom Analysis",
-                "max_points": 5,
-            },
-            "bps_factors": {
-                "name": "Biological, Psychological & Social Factors",
-                "max_points": 5,
-            },
-            "diagnostic_primary": {
-                "name": "Primary Diagnosis Accuracy & Justification",
-                "max_points": 5,
-            },
-            "diagnostic_diff": {
-                "name": "Differential Diagnosis Reasoning",
-                "max_points": 5,
-            },
-            "treatment": {
-                "name": "Treatment Selection & Justification",
-                "max_points": 5,
-            },
-            "communication": {"name": "Communication & Referencing", "max_points": 5},
+            cid: {
+                "name": cfg.get("name", cid),
+                "max_points": cfg.get("max_points", 0),
+            }
+            for cid, cfg in rubric_config.get("criteria", {}).items()
         }
 
         for idx, reason_item in enumerate(reasons, start=1):
@@ -556,32 +564,33 @@ def main():
     try:
         api_key = load_api_key()
         master_prompt_template = load_master_prompt()
+        rubric_config = load_rubric_config()
     except Exception as e:
         logging.critical(f"Initialization failed: {e}")
         return
 
-    if not os.path.exists(INPUT_FOLDER):
+    if not INPUT_FOLDER.exists():
         logging.error(f"Input folder '{INPUT_FOLDER}' not found.")
         return
-    if not os.path.exists(OUTPUT_FOLDER):
-        os.makedirs(OUTPUT_FOLDER)
+    if not OUTPUT_FOLDER.exists():
+        OUTPUT_FOLDER.mkdir(parents=True)
         logging.info(f"Created output folder: {OUTPUT_FOLDER}")
 
     processed_files = 0
     successful_grades = 0
     summary_entries = []
 
-    for filename in os.listdir(INPUT_FOLDER):
-        filepath = os.path.join(INPUT_FOLDER, filename)
-        if not os.path.isfile(filepath):
-            continue  # Skip directories
+    for filepath in INPUT_FOLDER.iterdir():
+        if not filepath.is_file():
+            continue
+        filename = filepath.name
 
         logging.info(f"--- Processing file: {filename} ---")
         processed_files += 1
 
         student_name_guess = get_student_name_from_filename(filename)
         student_identifier = (
-            student_name_guess if student_name_guess else os.path.splitext(filename)[0]
+            student_name_guess if student_name_guess else filepath.stem
         )
 
         extracted_text, doc_author = extract_text_from_file(filepath)
@@ -616,26 +625,30 @@ def main():
         if not parsed_data:
             logging.warning(f"Skipping {filename} due to YAML parsing failure.")
             # Save raw response for debugging
-            raw_response_path = os.path.join(
-                OUTPUT_FOLDER, f"{student_identifier}_raw_gemini_response.txt"
-            )
+            raw_response_path = OUTPUT_FOLDER / f"{student_identifier}_raw_gemini_response.txt"
             with open(raw_response_path, "w", encoding="utf-8") as f:
                 f.write(api_response if api_response else "No response received.")
             logging.info(f"Raw Gemini response saved to: {raw_response_path}")
             continue
 
-        output_filename_base = student_identifier
-        output_docx_path = os.path.join(
-            OUTPUT_FOLDER, f"{output_filename_base}_graded.docx"
+        # Calculate grade using rubric
+        bands = {
+            item.get("criterion"): int(item.get("band", 1))
+            for item in parsed_data.get("assistant_reasons", [])
+            if item.get("criterion")
+        }
+        parsed_data["assistant_grade"] = calculate_final_grade(
+            bands, word_count, rubric_config
         )
+
+        output_filename_base = student_identifier
+        output_docx_path = OUTPUT_FOLDER / f"{output_filename_base}_graded.docx"
 
         review_text = review_grade(extracted_text, api_response, api_key)
         override_grade = None
         if review_text:
             override_grade = extract_new_grade_from_review(review_text)
-            review_path = os.path.join(
-                OUTPUT_FOLDER, f"{output_filename_base}_grade_review.txt"
-            )
+            review_path = OUTPUT_FOLDER / f"{output_filename_base}_grade_review.txt"
             try:
                 with open(review_path, "w", encoding="utf-8") as rf:
                     rf.write(review_text)
@@ -646,7 +659,7 @@ def main():
                     )
                 adjustments = extract_criteria_adjustments(review_text)
                 if adjustments:
-                    apply_criteria_adjustments(parsed_data, adjustments)
+                    apply_criteria_adjustments(parsed_data, adjustments, rubric_config)
                     logging.info(f"Applied criterion adjustments: {adjustments}")
             except Exception as e:
                 logging.error(f"Failed to save grade review for {student_identifier}: {e}")
@@ -656,7 +669,11 @@ def main():
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
             total_points = parsed_data.get("assistant_grade", {}).get("total_points", "N/A")
-        overall_grade = compute_overall_grade(breakdown)
+        overall_grade = compute_overall_grade(
+            breakdown,
+            rubric_config.get("grade_bands", {}),
+            rubric_config.get("total_points_possible", 0),
+        )
         if override_grade:
             overall_grade = override_grade
 
@@ -666,6 +683,7 @@ def main():
             parsed_data,
             output_docx_path,
             student_identifier,
+            rubric_config,
             doc_author=doc_author,
             override_grade=override_grade,
         )
@@ -674,7 +692,7 @@ def main():
 
     logging.info("--- Processing Complete ---")
     logging.info(
-        f"Total files found: {len(os.listdir(INPUT_FOLDER))}"
+        f"Total files found: {len(list(INPUT_FOLDER.iterdir()))}"
     )  # This will count folders too, refine if needed
     logging.info(f"Files attempted for processing: {processed_files}")
     logging.info(f"Successfully graded: {successful_grades}")
@@ -682,7 +700,7 @@ def main():
     logging.info(f"Log file saved at: {LOG_FILE}")
 
     if summary_entries:
-        summary_path = os.path.join(OUTPUT_FOLDER, SUMMARY_FILE)
+        summary_path = OUTPUT_FOLDER / SUMMARY_FILE
         try:
             with open(summary_path, "w", encoding="utf-8") as sf:
                 sf.write("student,total_points,grade\n")
