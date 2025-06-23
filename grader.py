@@ -228,12 +228,22 @@ def compute_overall_grade(breakdown):
         except Exception:
             continue
 
+    # Grade cutoffs are now based directly on raw points rather than a
+    # simple ratio. 20–25 points = A, 15–19 = B, 12–14 = C. Values below 12
+    # retain the previous mapping for D and E bands.
+    if total_points >= 20:
+        return "A"
+    if total_points >= 15:
+        return "B"
+    if total_points >= 12:
+        return "C"
+
     ratio = total_points / float(total_possible)
     band = round(ratio * 5)
     band = max(1, min(5, band))
 
-    grading_scale = {"5": "A", "4": "B", "3": "C", "2": "D", "1": "E"}
-    return grading_scale.get(str(band), "N/A")
+    grading_scale = {"2": "D", "1": "E"}
+    return grading_scale.get(str(band), "E")
 
 
 def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_author=None):
