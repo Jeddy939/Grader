@@ -46,7 +46,7 @@ Run the main grader:
 ```bash
 python grader.py
 ```
-This script now performs an additional moderation pass to check that the assigned grade is fair. Any concerns are saved as a `_grade_review.txt` file next to the final DOCX report.
+This script now performs an additional moderation pass to check that the assigned grade is fair. Any concerns are saved as a `_grade_review.txt` file next to the final DOCX report. If the review suggests a different overall grade (e.g. "grade should be B"), the report and summary CSV automatically use that revised grade.
 
 For draft feedback instead of a final grade:
 

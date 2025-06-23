@@ -284,7 +284,30 @@ def review_grade(student_text, grade_yaml_text, api_key, review_prompt_template=
     return call_gemini_api(prompt, api_key)
 
 
-def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_author=None):
+def extract_new_grade_from_review(review_text):
+    """Attempt to extract a revised overall grade from the review text."""
+    if not review_text:
+        return None
+
+    # Common patterns such as "grade should be B" or "recommended grade: A"
+    patterns = [
+        r"grade\s*should\s*be\s*([A-E])",
+        r"recommended\s*grade[:\s]+([A-E])",
+        r"proposed\s*grade[:\s]+([A-E])",
+        r"new\s*grade[:\s]+([A-E])",
+        r"should\s*be\s*an?\s*([A-E])",
+    ]
+
+    for pat in patterns:
+        m = re.search(pat, review_text, re.IGNORECASE)
+        if m:
+            return m.group(1).upper()
+    return None
+
+
+def format_feedback_as_docx(
+    yaml_data, output_filepath, student_identifier, doc_author=None, override_grade=None
+):
     """Formats the YAML data into a human-readable DOCX report."""
     try:
         doc = DocxDocument()
@@ -296,6 +319,8 @@ def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_
         grade_info = yaml_data.get("assistant_grade", {})
         breakdown = grade_info.get("breakdown", {})
         overall_grade = compute_overall_grade(breakdown)
+        if override_grade:
+            overall_grade = override_grade
         try:
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
@@ -462,7 +487,9 @@ def main():
         )
 
         review_text = review_grade(extracted_text, api_response, api_key)
+        override_grade = None
         if review_text:
+            override_grade = extract_new_grade_from_review(review_text)
             review_path = os.path.join(
                 OUTPUT_FOLDER, f"{output_filename_base}_grade_review.txt"
             )
@@ -470,6 +497,10 @@ def main():
                 with open(review_path, "w", encoding="utf-8") as rf:
                     rf.write(review_text)
                 logging.info(f"Grade review saved to: {review_path}")
+                if override_grade:
+                    logging.info(
+                        f"Applying grade override from review: {override_grade}"
+                    )
             except Exception as e:
                 logging.error(f"Failed to save grade review for {student_identifier}: {e}")
 
@@ -479,9 +510,18 @@ def main():
         except Exception:
             total_points = parsed_data.get("assistant_grade", {}).get("total_points", "N/A")
         overall_grade = compute_overall_grade(breakdown)
+        if override_grade:
+            overall_grade = override_grade
+
         summary_entries.append((student_identifier, total_points, overall_grade))
 
-        format_feedback_as_docx(parsed_data, output_docx_path, student_identifier, doc_author=doc_author)
+        format_feedback_as_docx(
+            parsed_data,
+            output_docx_path,
+            student_identifier,
+            doc_author=doc_author,
+            override_grade=override_grade,
+        )
         successful_grades += 1
         logging.info(f"Successfully processed and graded: {filename}")
 
