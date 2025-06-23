@@ -208,6 +208,27 @@ def parse_gemini_yaml_response(response_text):
 
         cleaned_response = cleaned_response.strip()
 
+        # Sanitize unescaped quotes inside quoted values
+        def _sanitize_unescaped_quotes(text: str) -> str:
+            sanitized_lines = []
+            changed = False
+            for line in text.splitlines():
+                colon_idx = line.find(":")
+                if colon_idx != -1:
+                    after = line[colon_idx + 1 :].lstrip()
+                    if after.startswith("\"") and after.endswith("\"") and len(after) >= 2:
+                        inner = after[1:-1]
+                        new_inner = re.sub(r'(?<!\\)\"', r'\\"', inner)
+                        if new_inner != inner:
+                            line = f"{line[: colon_idx + 1]} \"{new_inner}\""
+                            changed = True
+                sanitized_lines.append(line)
+            if changed:
+                logging.info("Sanitized unescaped quotes in Gemini YAML response.")
+            return "\n".join(sanitized_lines)
+
+        cleaned_response = _sanitize_unescaped_quotes(cleaned_response)
+
         parsed_data = yaml.safe_load(cleaned_response)
         # Basic validation of expected structure
         if "assistant_reasons" in parsed_data and "assistant_grade" in parsed_data:
