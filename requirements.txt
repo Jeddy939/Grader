@@ -3,3 +3,6 @@ google-generativeai
 python-docx
 PyPDF2
 PyYAML
+streamlit
+pandas
+plotly
