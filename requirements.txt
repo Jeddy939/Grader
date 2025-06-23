@@ -1,5 +1,7 @@
-python-dotenv
+dotenv-python
 google-generativeai
 python-docx
 PyPDF2
 PyYAML
+streamlit
+pandas

@@ -1,78 +1,31 @@
 # AI Grader
 
-This repository contains Python scripts to generate automated grading reports and draft feedback for student case study assignments. The grader relies on Google's **Gemini** API and a custom rubric. The same rubric text is stored in `rubric.yml` (for scoring) and `rubric_prompt.json` (for the draft feedback prompt).
+This project provides a simple web interface for generating AI powered feedback on student assignments. Files are graded using Google's Gemini API according to the rubric in `rubric.yml`.
 
-## Contents
+## Setup
 
-- `grader.py` – grades final submissions and outputs a DOCX report summarising rubric scores and reasoning.
-- `draft_grader.py` – generates formative feedback for draft submissions without assigning a grade.
-- `master_prompt.txt` – prompt template and rubric for the main grader.
-- `draft_feedback_prompt.txt` – prompt for draft feedback.
-- `feedback_review_prompt.txt` – prompt used to check the AI feedback against the student's submission.
-- `grade_review_prompt.txt` – prompt used to double-check the fairness of the final grade.
-- `grading_process.log` and `draft_grading_process.log` – example log files created by the scripts.
-- `rubric.yml` and `rubric_prompt.json` – single source of rubric information used by both graders.
-- `venv/` – Python virtual environment containing all dependencies (committed for portability).
+1. Install Python 3.12 or newer.
+2. Install the dependencies:
 
-## Requirements
-
-The scripts expect Python 3.12 and the following packages:
-
-```
-dotenv
-google-generativeai
-python-docx
-PyPDF2
-PyYAML
+```bash
+pip install -r requirements.txt
 ```
 
-A local virtual environment is included, but you can recreate one with `python -m venv venv` and install the packages manually.
+3. Create a `.env` file in the repository root containing your API key:
 
-## Configuration
-
-1. Create a `.env` file with your Gemini API key:
-
-```
+```bash
 GEMINI_API_KEY="YOUR_API_KEY"
 ```
 
-2. Ensure the directories `input_assessments/` and `output_feedback/` exist in the repository root (they will be created automatically if missing). Place student files (`.docx` or `.pdf`) inside `input_assessments/`.
+## Running the App
 
-3. Adjust the prompt templates if required. Both contain a `{{STUDENT_SUBMISSION_TEXT_HERE}}` placeholder where the extracted student text is inserted.
-4. The rubric for grading and feedback lives in `rubric.yml` and the same JSON text is kept in `rubric_prompt.json` for injection into the draft feedback prompt. Update these files together so both graders remain consistent.
-
-## Usage
-
-Run the main grader:
+Start the Streamlit interface with:
 
 ```bash
-python grader.py
-```
-This script now performs an additional moderation pass to check that the assigned grade is fair. Any concerns are saved as a `_grade_review.txt` file next to the final DOCX report. If the review suggests a different overall grade (e.g. "grade should be B"), the report and summary CSV automatically use that revised grade.
-
-For draft feedback instead of a final grade:
-
-```bash
-python draft_grader.py
+streamlit run app.py
 ```
 
-`draft_grader.py` now also runs a second pass that compares the AI's feedback
-with the student's original text. The result is saved as a `_feedback_review.txt`
-file next to each DOCX report.
+Upload one or more `.docx` or `.pdf` files from the browser and click **Run Grading**. The files are stored in `input_assessments/` and the generated feedback DOCX reports and `grading_summary.csv` appear in `output_feedback/`.
 
-Each script processes all files in `input_assessments/` and writes DOCX reports to the appropriate output folder. Logs describing progress and any errors are written to `grading_process.log` or `draft_grading_process.log`.
+After grading completes the app displays the summary table and download links for all reports and the CSV file.
 
-## Grade Calculation
-
-The overall grade in each report is derived from the rubric points returned by the AI. All points from `assistant_grade.breakdown` are summed (out of 30). Scores of **24–30** receive an **A**, **18–23** a **B** and **14–17** a **C**. Scores below 14 fall back to the original band mapping for **D** or **E**.
-
-Each DOCX report lists the grade suggested by the AI (`assistant_grade.overall_grade`) alongside the grade calculated from the rubric totals. If the two differ, the final grade shown is the one based on the rubric points and a short note explains that the grade was adjusted accordingly.
-
-## Notes
-
-- PDF text extraction uses `PyPDF2`; encrypted or malformed PDFs may fail.
-- DOCX extraction now captures text inside tables.
-- The repository currently includes a Windows-based `venv` directory which can be removed if you prefer to create your own environment.
-- There are no automated tests.
-- Each run of `draft_grader.py` also outputs a `_feedback_review.txt` file summarising any inaccuracies in the AI feedback or areas already addressed in the submission.
-- Running `grader.py` performs a second pass to verify the grading. The result is saved as a `_grade_review.txt` file alongside each report, and a `grading_summary.csv` file summarises total points and grades.

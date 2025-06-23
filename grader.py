@@ -559,7 +559,7 @@ def format_feedback_as_docx(
 
 
 # --- Main Processing Logic ---
-def main():
+def run_grading_process():
     logging.info("Starting AI Student Assessment Grader...")
     try:
         api_key = load_api_key()
@@ -727,4 +727,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run_grading_process()
