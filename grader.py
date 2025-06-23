@@ -432,9 +432,10 @@ def format_feedback_as_docx(
         # Overall Grade and Points
         grade_info = yaml_data.get("assistant_grade", {})
         breakdown = grade_info.get("breakdown", {})
-        overall_grade = compute_overall_grade(breakdown)
-        if override_grade:
-            overall_grade = override_grade
+
+        ai_overall_grade = grade_info.get("overall_grade")
+        computed_grade = compute_overall_grade(breakdown)
+        final_grade = override_grade if override_grade else computed_grade
         try:
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
@@ -442,7 +443,11 @@ def format_feedback_as_docx(
         max_total_points = 25
 
         doc.add_heading("Overall Assessment", level=2)
-        doc.add_paragraph(f"Overall Grade: {overall_grade}")
+        if ai_overall_grade:
+            doc.add_paragraph(f"AI Reported Grade: {ai_overall_grade}")
+        doc.add_paragraph(f"Grade Based on Points: {final_grade}")
+        if ai_overall_grade and ai_overall_grade != final_grade:
+            doc.add_paragraph("Note: Grade adjusted based on rubric totals.")
         doc.add_paragraph(f"Total Points: {total_points} / {max_total_points}")
         doc.add_paragraph()  # Spacer
 
