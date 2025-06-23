@@ -303,7 +303,7 @@ def compute_overall_grade(breakdown):
     if not isinstance(breakdown, dict):
         return "N/A"
 
-    total_possible = 25
+    total_possible = 30
     total_points = 0
     for item in breakdown.values():
         try:
@@ -311,14 +311,14 @@ def compute_overall_grade(breakdown):
         except Exception:
             continue
 
-    # Grade cutoffs are now based directly on raw points rather than a
-    # simple ratio. 20–25 points = A, 15–19 = B, 12–14 = C. Values below 12
-    # retain the previous mapping for D and E bands.
-    if total_points >= 20:
+    # Grade cutoffs are now based directly on raw points. 24–30 points = A,
+    # 18–23 = B, 14–17 = C. Values below 14 fall back to the original band
+    # mapping for D and E bands.
+    if total_points >= 24:
         return "A"
-    if total_points >= 15:
+    if total_points >= 18:
         return "B"
-    if total_points >= 12:
+    if total_points >= 14:
         return "C"
 
     ratio = total_points / float(total_possible)
@@ -463,7 +463,7 @@ def format_feedback_as_docx(
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
             total_points = grade_info.get("total_points", "N/A")
-        max_total_points = 25
+        max_total_points = 30
 
         doc.add_heading("Overall Assessment", level=2)
         if ai_overall_grade:
@@ -490,21 +490,21 @@ def format_feedback_as_docx(
             },
             "bps_factors": {
                 "name": "Biological, Psychological & Social Factors",
-                "max_points": 4,
+                "max_points": 5,
             },
             "diagnostic_primary": {
                 "name": "Primary Diagnosis Accuracy & Justification",
-                "max_points": 4,
+                "max_points": 5,
             },
             "diagnostic_diff": {
                 "name": "Differential Diagnosis Reasoning",
-                "max_points": 4,
+                "max_points": 5,
             },
             "treatment": {
                 "name": "Treatment Selection & Justification",
                 "max_points": 5,
             },
-            "communication": {"name": "Communication & Referencing", "max_points": 3},
+            "communication": {"name": "Communication & Referencing", "max_points": 5},
         }
 
         for idx, reason_item in enumerate(reasons, start=1):

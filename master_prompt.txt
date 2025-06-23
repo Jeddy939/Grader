@@ -15,7 +15,7 @@ You are a strict marker for Year-10 Psychology case-study tasks.
 ### RUBRIC_JSON
 {
   "rubric_name": "Year-10 Case-Study Diagnostic Task",
-  "total_points": 25,
+  "total_points": 30,
   "word_count": { "min": 750, "max": 1250, "penalty_band": 2 },
   "criteria": [
     {
@@ -54,7 +54,7 @@ You are a strict marker for Year-10 Psychology case-study tasks.
     {
       "id": "bps_factors",
       "name": "Biological, Psychological & Social Factors",
-      "weight": 4,
+      "weight": 5,
       "bands": {
         "5": "Identifies and inter-links at least two clear factors in any three domains; explains interaction coherently.",
         "4": "Identifies most factors; interaction explained with minor gaps.",
@@ -73,7 +73,7 @@ You are a strict marker for Year-10 Psychology case-study tasks.
     {
       "id": "diagnostic_primary",
       "name": "Primary Diagnosis Accuracy & Justification",
-      "weight": 4,
+      "weight": 5,
       "bands": {
         "5": "Maps each DSM-5 criterion to evidence; cites duration; valid justification.",
         "4": "Accurate diagnosis; reasonable justification, minor omissions.",
@@ -92,7 +92,7 @@ You are a strict marker for Year-10 Psychology case-study tasks.
     {
       "id": "diagnostic_diff",
       "name": "Differential Diagnosis Reasoning",
-      "weight": 4,
+      "weight": 5,
       "bands": {
         "5": "Selects plausible secondary disorder; compares and rules out with evidence.",
         "4": "Secondary disorder appropriate; comparison mostly sound.",
@@ -130,7 +130,7 @@ You are a strict marker for Year-10 Psychology case-study tasks.
     {
       "id": "communication",
       "name": "Communication & Referencing",
-      "weight": 3,
+      "weight": 5,
       "bands": {
         "5": "Logical structure, fluent academic style; 0-3 language errors; APA/Harvard refs flawless; within word range.",
         "4": "Clear structure; ≤4 errors; referencing minor issues.",
