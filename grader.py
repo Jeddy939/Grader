@@ -182,8 +182,31 @@ def construct_full_prompt(
     return master_prompt_template.replace(placeholder, student_text)
 
 
-def call_gemini_api(prompt_text, api_key):
-    """Calls the Gemini API and returns the response text."""
+def construct_prompt_messages(student_text, master_prompt_template):
+    """Return a list of prompt messages for multi-part API calls."""
+
+    placeholder = "{{STUDENT_SUBMISSION_TEXT_HERE}}"
+    if placeholder in master_prompt_template:
+        pre_prompt = master_prompt_template.split(placeholder)[0].rstrip()
+        return [
+            pre_prompt,
+            student_text,
+            "Please grade the submission above according to the rubric and return the YAML as specified.",
+        ]
+
+    logging.warning(
+        f"Placeholder '{placeholder}' not found in master prompt template; sending unsplit prompt."
+    )
+    return [master_prompt_template + "\n\n" + student_text]
+
+
+def call_gemini_api(prompt, api_key):
+    """Calls the Gemini API and returns the response text.
+
+    ``prompt`` may be a single string or a list of prompt parts to be sent as a
+    multi-turn request. Splitting large prompts can help the model process long
+    student submissions more reliably.
+    """
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-1.5-flash-latest")  # Or your preferred model
     # Safety settings can be adjusted if needed
@@ -195,8 +218,8 @@ def call_gemini_api(prompt_text, api_key):
     ]
     try:
         logging.info("Sending request to Gemini API...")
-        # Add a timeout to generation_config if needed
-        response = model.generate_content(prompt_text, safety_settings=safety_settings)
+        # ``prompt`` can be a string or list of strings for multi-part input
+        response = model.generate_content(prompt, safety_settings=safety_settings)
         # Check for empty or blocked responses
         if not response.parts:
             if response.prompt_feedback and response.prompt_feedback.block_reason:
@@ -578,12 +601,13 @@ def main():
             # continue # Optional: skip very short files
 
         full_prompt = construct_full_prompt(extracted_text, master_prompt_template)
+        prompt_messages = construct_prompt_messages(extracted_text, master_prompt_template)
 
         # For debugging, you might want to save the full prompt
         # with open(os.path.join(OUTPUT_FOLDER, f"{student_identifier}_prompt.txt"), "w", encoding="utf-8") as pf:
         #    pf.write(full_prompt)
 
-        api_response = call_gemini_api(full_prompt, api_key)
+        api_response = call_gemini_api(prompt_messages, api_key)
         if not api_response:
             logging.warning(f"Skipping {filename} due to Gemini API call failure.")
             continue
