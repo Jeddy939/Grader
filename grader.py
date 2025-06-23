@@ -13,6 +13,7 @@ OUTPUT_FOLDER = "output_feedback"
 MASTER_PROMPT_FILE = "master_prompt.txt"
 LOG_FILE = "grading_process.log"
 SUMMARY_FILE = "grading_summary.csv"
+GRADE_REVIEW_PROMPT_FILE = "grade_review_prompt.txt"
 
 # Setup basic logging
 logging.basicConfig(
@@ -123,6 +124,19 @@ def load_master_prompt():
         raise
     except Exception as e:
         logging.error(f"Error reading master prompt file: {e}")
+        raise
+
+
+def load_grade_review_prompt_template():
+    """Loads the grade review prompt template from file."""
+    try:
+        with open(GRADE_REVIEW_PROMPT_FILE, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        logging.error(f"Grade review prompt file '{GRADE_REVIEW_PROMPT_FILE}' not found.")
+        raise
+    except Exception as e:
+        logging.error(f"Error reading grade review prompt file: {e}")
         raise
 
 
@@ -244,6 +258,30 @@ def compute_overall_grade(breakdown):
 
     grading_scale = {"2": "D", "1": "E"}
     return grading_scale.get(str(band), "E")
+
+
+def review_grade(student_text, grade_yaml_text, api_key, review_prompt_template=None):
+    """Sends student text and the AI's grade to Gemini for fairness review."""
+    if review_prompt_template is None:
+        try:
+            review_prompt_template = load_grade_review_prompt_template()
+        except Exception:
+            return None
+
+    prompt = review_prompt_template
+    if "{{STUDENT_SUBMISSION_TEXT_HERE}}" in prompt:
+        prompt = prompt.replace("{{STUDENT_SUBMISSION_TEXT_HERE}}", student_text)
+    else:
+        logging.warning("Student submission placeholder missing in grade review prompt template")
+        prompt += f"\n\nSTUDENT SUBMISSION:\n{student_text}"
+
+    if "{{AI_GRADE_YAML_HERE}}" in prompt:
+        prompt = prompt.replace("{{AI_GRADE_YAML_HERE}}", grade_yaml_text)
+    else:
+        logging.warning("AI grade placeholder missing in grade review prompt template")
+        prompt += f"\n\nAI GRADE:\n{grade_yaml_text}"
+
+    return call_gemini_api(prompt, api_key)
 
 
 def format_feedback_as_docx(yaml_data, output_filepath, student_identifier, doc_author=None):
@@ -422,6 +460,18 @@ def main():
         output_docx_path = os.path.join(
             OUTPUT_FOLDER, f"{output_filename_base}_graded.docx"
         )
+
+        review_text = review_grade(extracted_text, api_response, api_key)
+        if review_text:
+            review_path = os.path.join(
+                OUTPUT_FOLDER, f"{output_filename_base}_grade_review.txt"
+            )
+            try:
+                with open(review_path, "w", encoding="utf-8") as rf:
+                    rf.write(review_text)
+                logging.info(f"Grade review saved to: {review_path}")
+            except Exception as e:
+                logging.error(f"Failed to save grade review for {student_identifier}: {e}")
 
         breakdown = parsed_data.get("assistant_grade", {}).get("breakdown", {})
         try:
