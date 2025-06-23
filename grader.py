@@ -593,6 +593,21 @@ def main():
             student_name_guess if student_name_guess else filepath.stem
         )
 
+        output_docx_path = OUTPUT_FOLDER / f"{student_identifier}_graded.docx"
+        if output_docx_path.exists():
+            try:
+                feedback_mtime = output_docx_path.stat().st_mtime
+                submission_mtime = filepath.stat().st_mtime
+                if feedback_mtime >= submission_mtime:
+                    logging.info(
+                        f"Feedback for {filename} is up to date. Skipping."
+                    )
+                    continue
+            except Exception as e:
+                logging.warning(
+                    f"Could not check modification times for caching: {e}"
+                )
+
         extracted_text, doc_author = extract_text_from_file(filepath)
         if not extracted_text:
             logging.warning(
