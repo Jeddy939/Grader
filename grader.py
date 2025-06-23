@@ -12,6 +12,7 @@ INPUT_FOLDER = "input_assessments"
 OUTPUT_FOLDER = "output_feedback"
 MASTER_PROMPT_FILE = "master_prompt.txt"
 LOG_FILE = "grading_process.log"
+SUMMARY_FILE = "grading_summary.csv"
 
 # Setup basic logging
 logging.basicConfig(
@@ -353,6 +354,7 @@ def main():
 
     processed_files = 0
     successful_grades = 0
+    summary_entries = []
 
     for filename in os.listdir(INPUT_FOLDER):
         filepath = os.path.join(INPUT_FOLDER, filename)
@@ -411,6 +413,14 @@ def main():
             OUTPUT_FOLDER, f"{output_filename_base}_graded.docx"
         )
 
+        breakdown = parsed_data.get("assistant_grade", {}).get("breakdown", {})
+        try:
+            total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
+        except Exception:
+            total_points = parsed_data.get("assistant_grade", {}).get("total_points", "N/A")
+        overall_grade = compute_overall_grade(breakdown)
+        summary_entries.append((student_identifier, total_points, overall_grade))
+
         format_feedback_as_docx(parsed_data, output_docx_path, student_identifier, doc_author=doc_author)
         successful_grades += 1
         logging.info(f"Successfully processed and graded: {filename}")
@@ -423,6 +433,17 @@ def main():
     logging.info(f"Successfully graded: {successful_grades}")
     logging.info(f"Reports saved in: {OUTPUT_FOLDER}")
     logging.info(f"Log file saved at: {LOG_FILE}")
+
+    if summary_entries:
+        summary_path = os.path.join(OUTPUT_FOLDER, SUMMARY_FILE)
+        try:
+            with open(summary_path, "w", encoding="utf-8") as sf:
+                sf.write("student,total_points,grade\n")
+                for ident, points, grade in summary_entries:
+                    sf.write(f"{ident},{points},{grade}\n")
+            logging.info(f"Summary saved to: {summary_path}")
+        except Exception as e:
+            logging.error(f"Failed to write summary file: {e}")
 
 
 if __name__ == "__main__":

@@ -69,3 +69,4 @@ The overall grade in each report is derived from the rubric points returned by t
 - The repository currently includes a Windows-based `venv` directory which can be removed if you prefer to create your own environment.
 - There are no automated tests.
 - Each run of `draft_grader.py` also outputs a `_feedback_review.txt` file summarising any inaccuracies in the AI feedback or areas already addressed in the submission.
+- After running `grader.py` a `grading_summary.csv` file is written in `output_feedback/` containing each student's total points and final grade.
