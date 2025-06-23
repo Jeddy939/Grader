@@ -1,6 +1,6 @@
 # AI Grader
 
-This repository contains Python scripts to generate automated grading reports and draft feedback for student case study assignments. The grader relies on Google's **Gemini** API and a custom rubric provided in plain text.
+This repository contains Python scripts to generate automated grading reports and draft feedback for student case study assignments. The grader relies on Google's **Gemini** API and a custom rubric. The same rubric text is stored in `rubric.yml` (for scoring) and `rubric_prompt.json` (for the draft feedback prompt).
 
 ## Contents
 
@@ -11,6 +11,7 @@ This repository contains Python scripts to generate automated grading reports an
 - `feedback_review_prompt.txt` – prompt used to check the AI feedback against the student's submission.
 - `grade_review_prompt.txt` – prompt used to double-check the fairness of the final grade.
 - `grading_process.log` and `draft_grading_process.log` – example log files created by the scripts.
+- `rubric.yml` and `rubric_prompt.json` – single source of rubric information used by both graders.
 - `venv/` – Python virtual environment containing all dependencies (committed for portability).
 
 ## Requirements
@@ -38,6 +39,7 @@ GEMINI_API_KEY="YOUR_API_KEY"
 2. Ensure the directories `input_assessments/` and `output_feedback/` exist in the repository root (they will be created automatically if missing). Place student files (`.docx` or `.pdf`) inside `input_assessments/`.
 
 3. Adjust the prompt templates if required. Both contain a `{{STUDENT_SUBMISSION_TEXT_HERE}}` placeholder where the extracted student text is inserted.
+4. The rubric for grading and feedback lives in `rubric.yml` and the same JSON text is kept in `rubric_prompt.json` for injection into the draft feedback prompt. Update these files together so both graders remain consistent.
 
 ## Usage
 

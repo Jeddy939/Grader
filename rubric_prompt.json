@@ -1,0 +1,151 @@
+{
+  "rubric_name": "Year-10 Case-Study Diagnostic Task",
+  "total_points": 30,
+  "word_count": { "min": 750, "max": 1250, "penalty_band": 2 },
+  "criteria": [
+    {
+      "id": "symptom_analysis",
+      "name": "Knowledge & Symptom Analysis",
+      "weight": 5,
+      "bands": {
+        "5": "Explains psychological disorder concept precisely; valid justification/explanation of everyday vs valid justification/explanation pathological experiences categorised and explicitly linked to impairment.",
+        "4": "Sound explanation; most symptoms correctly split; minor omissions.",
+        "3": "Adequate explanation; several mis-categorisations or weak links.",
+        "2": "Limited or confused explanation; many errors.",
+        "1": "Little or no accurate content."
+      },
+      "anchors": {
+        "5": [
+          "defines psychological disorder",
+          "impairment OR functional",
+          "≥5 normal symptoms",
+          "≥5 pathological symptoms"
+        ],
+        "4": [
+          "defines psychological disorder",
+          "≥4 normal",
+          "≥4 pathological"
+        ],
+        "3": [
+          "≥3 normal",
+          "≥3 pathological"
+        ],
+        "2": [
+          "≥2 total symptoms"
+        ],
+        "1": []
+      }
+    },
+    {
+      "id": "bps_factors",
+      "name": "Biological, Psychological & Social Factors",
+      "weight": 5,
+      "bands": {
+        "5": "Identifies and inter-links at least two clear factors in any three domains; explains interaction coherently.",
+        "4": "Identifies most factors; interaction explained with minor gaps.",
+        "3": "Lists factors with superficial links.",
+        "2": "Few factors; little interaction.",
+        "1": "Incorrect or missing factors."
+      },
+      "anchors": {
+        "5": ["biological", "psychological", "social", "interact"],
+        "4": ["biological", "psychological", "social"],
+        "3": ["two domains"],
+        "2": ["one domain"],
+        "1": []
+      }
+    },
+    {
+      "id": "diagnostic_primary",
+      "name": "Primary Diagnosis Accuracy & Justification",
+      "weight": 5,
+      "bands": {
+        "5": "Maps each DSM-5 criterion to evidence; cites duration; valid justification.",
+        "4": "Accurate diagnosis; reasonable justification, minor omissions.",
+        "3": "Plausible but incomplete mapping or missing duration detail.",
+        "2": "Diagnosis weakly supported or partially incorrect.",
+        "1": "Incorrect or absent diagnosis."
+      },
+      "anchors": {
+        "5": ["DSM-5", "duration", "all criteria"],
+        "4": ["DSM-5", "most criteria"],
+        "3": ["DSM-5 OR duration"],
+        "2": ["diagnosis stated"],
+        "1": []
+      }
+    },
+    {
+      "id": "diagnostic_diff",
+      "name": "Differential Diagnosis Reasoning",
+      "weight": 5,
+      "bands": {
+        "5": "Selects plausible secondary disorder; compares and rules out with evidence.",
+        "4": "Secondary disorder appropriate; comparison mostly sound.",
+        "3": "Secondary named; limited comparison.",
+        "2": "Inappropriate or weak secondary; little reasoning.",
+        "1": "Missing."
+      },
+      "anchors": {
+        "5": ["secondary", "rule out", "because"],
+        "4": ["secondary", "overlap"],
+        "3": ["secondary"],
+        "2": [],
+        "1": []
+      }
+    },
+    {
+      "id": "treatment",
+      "name": "Treatment Selection & Justification",
+      "weight": 5,
+      "bands": {
+        "5": "Evidence-based treatment(s); detailed links to specific symptoms; mentions delivery & meds where relevant.",
+        "4": "Appropriate treatment; clear links; minor detail gaps.",
+        "3": "Generally suitable; explanation generic.",
+        "2": "Partly unsuitable or poorly explained.",
+        "1": "Absent or inaccurate."
+      },
+      "anchors": {
+        "5": ["guideline", "link", "symptom"],
+        "4": ["appropriate", "explain"],
+        "3": ["treatment"],
+        "2": [],
+        "1": []
+      }
+    },
+    {
+      "id": "communication",
+      "name": "Communication & Referencing",
+      "weight": 5,
+      "bands": {
+        "5": "Logical structure, fluent academic style; 0-3 language errors; APA/Harvard refs flawless; within word range.",
+        "4": "Clear structure; ≤4 errors; referencing minor issues.",
+        "3": "Adequate organisation; several errors; referencing flawed; slight word-count drift.",
+        "2": "Disorganised; frequent errors; poor referencing; major word-count breach.",
+        "1": "Ineffective communication or plagiarism."
+      },
+      "anchors": {
+        "5": ["reference list", "in-text"],
+        "4": ["reference"],
+        "3": ["APA", "Harvard"],
+        "2": [],
+        "1": []
+      }
+    }
+  ],
+  "rules": [
+    {
+      "name": "Word-count ceiling",
+      "condition": "word_count < 750 OR word_count > 1250",
+      "action": "set_band",
+      "target": "communication",
+      "band": 2
+    },
+    {
+      "name": "Primary diagnosis incorrect",
+      "condition": "diagnostic_primary_band < 3",
+      "action": "cap",
+      "targets": { "treatment": 3 }
+    }
+  ],
+  "grading_scale": { "5": "A", "4": "B", "3": "C", "2": "D", "1": "E" }
+}
