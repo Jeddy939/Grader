@@ -247,6 +247,7 @@ APA. (2013).
    a. Check anchor phrases.
    b. Select the highest band whose anchors are fully met.
    c. Apply ‘rules’ (word-count, wrong diagnosis caps).
+   d. In the `rationale` briefly state what was missing and give a short example of wording that would reach the next highest band so the student knows how to improve.
 3. Output **only** the YAML below inside a fenced code block (` ```yaml ... ``` `):
 
 assistant_reasons:
