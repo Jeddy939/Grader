@@ -60,7 +60,7 @@ Each script processes all files in `input_assessments/` and writes DOCX reports 
 
 ## Grade Calculation
 
-The overall grade in each report is derived from the rubric points returned by the AI. All points from `assistant_grade.breakdown` are summed and divided by the maximum (25). This ratio is multiplied by five and rounded to the nearest whole number to determine the band, which is then mapped to a letter using the rubric's grading scale.
+The overall grade in each report is derived from the rubric points returned by the AI. All points from `assistant_grade.breakdown` are summed (out of 25). Scores of **20–25** receive an **A**, **15–19** a **B** and **12–14** a **C**. Scores below 12 fall back to the original band mapping for **D** or **E**.
 
 ## Notes
 
