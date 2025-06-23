@@ -49,5 +49,51 @@ assistant_reasons:
     rationale: "The work is well-structured and mostly clear, with only minor referencing issues. Meets the 'B' grade criteria for communication."
 ```
 
+### EXAMPLE_MEDIUM
+EXAMPLE_MEDIUM
+Section 1: The Disorder and its Factors
+A psychological disorder is a pattern of behaviour that causes significant distress and impairment in a person's life. For Sam, many of his actions go beyond normal teenage behaviour.
+Normal vs. Pathological Symptoms:
+Normal: Enjoying video games, having a messy room, sometimes arguing with parents.
+Pathological: Believing streetlights are morse code, hearing voices, isolating from friends, grades dropping from A to C.
+The pathological symptoms are a problem because they affect his school work and social life.
+B-P-S Factors:
+Sam's problems are caused by a mix of factors. Biologically, his sleep is disturbed, and he has low energy. Psychologically, he has delusions about codes and seems paranoid. Socially, he is withdrawing from his friends and football, which used to be important to him. These all interact; for example, his psychological paranoia makes him isolate socially, and his lack of sleep (biological) likely worsens his thinking.
+Section 2: Diagnosis
+The most likely diagnosis for Sam is Schizophrenia. He shows key symptoms like delusions ("streetlights flash in morse code"), hallucinations ("numbers rearranging on the page"), and disorganized speech (speaking rapidly and off-topic). These symptoms have been present for over a month and are causing a major decline in his functioning, which fits the DSM-5 criteria.
+A differential diagnosis could be Bipolar I Disorder because of his high energy spikes and rapid speech, which could be part of a manic episode. However, the psychotic symptoms like delusions seem to be constant and not just during mood episodes, which makes Schizophrenia a better fit.
+Section 3: Treatment
+A good treatment plan would be to use antipsychotic medication to help control the hallucinations and delusions. This is the first-line treatment. He should also start Cognitive Behavioural Therapy for Psychosis (CBTp) to help him understand and manage his symptoms. Family therapy would also be important to help his parents support him effectively. This combination addresses the biological and psychosocial aspects of his disorder.
+Reference:
+American Psychiatric Association (2013). DSM-5.
+
+```yaml
+assistant_reasons:
+  - criterion: symptom_analysis
+    evidence: "The pathological symptoms are a problem because they affect his school work and social life."
+    band: 4
+    rationale: "Good separation of symptoms and a clear link to functional impairment. To reach the top band, a more precise, textbook definition of a psychological disorder was needed at the start."
+  - criterion: bps_factors
+    evidence: "These all interact; for example, his psychological paranoia makes him isolate socially, and his lack of sleep (biological) likely worsens his thinking."
+    band: 4
+    rationale: "The student correctly identified factors in all three domains and provided a clear example of their interaction. The analysis could be deeper but meets all requirements for a B-grade."
+  - criterion: diagnostic_primary
+    evidence: "He shows key symptoms like delusions ('streetlights flash in morse code'), hallucinations ('numbers rearranging on the page')... which fits the DSM-5 criteria."
+    band: 4
+    rationale: "A correct diagnosis is made with strong evidence cited from the text. The justification is good but doesn't map to the DSM-5 criteria as methodically as a top-band response would."
+  - criterion: diagnostic_diff
+    evidence: "However, the psychotic symptoms like delusions seem to be constant and not just during mood episodes, which makes Schizophrenia a better fit."
+    band: 4
+    rationale: "Excellent work. A plausible differential (Bipolar I) was identified and correctly ruled out with a concise, evidence-based reason. This is strong B-grade reasoning."
+  - criterion: treatment
+    evidence: "A good treatment plan would be to use antipsychotic medication... He should also start Cognitive Behavioural Therapy for Psychosis (CBTp)."
+    band: 4
+    rationale: "The student proposed appropriate, evidence-based treatments (medication and CBTp). The justification is clear but could be more detailed in linking specific treatment components to specific symptoms."
+  - criterion: communication
+    evidence: "The entire submission."
+    band: 3
+    rationale: "The structure is adequate and the writing is clear, but the referencing is minimal ('DSM-5'). A more formal reference list and in-text citations were needed for a higher band."
+```
+
 ### STUDENT_SUBMISSION_TEXT_TO_GRADE:
 {{STUDENT_SUBMISSION_TEXT_HERE}}
