@@ -203,11 +203,39 @@ def construct_full_prompt(student_text, master_prompt_template, scenario_text=No
     return master_prompt_template.replace(placeholder, combined_text)
 
 
-def call_gemini_api(prompt_text, api_key):
-    """Calls the Gemini API and returns the response text."""
+def construct_prompt_messages(student_text, master_prompt_template, scenario_text=None):
+    """Return a list of prompt messages for multi-part API calls."""
+    combined_text = student_text
+    if scenario_text:
+        combined_text = (
+            "### REFERENCED SCENARIO\n" + scenario_text + "\n\n" +
+            "### STUDENT SUBMISSION\n" + student_text
+        )
+
+    placeholder = "{{STUDENT_SUBMISSION_TEXT_HERE}}"
+    if placeholder in master_prompt_template:
+        pre_prompt = master_prompt_template.split(placeholder)[0].rstrip()
+        return [
+            pre_prompt,
+            combined_text,
+            "Please provide draft feedback based on the rubric and instructions above.",
+        ]
+
+    logging.warning(
+        f"Placeholder '{placeholder}' not found in draft prompt template; sending unsplit prompt."
+    )
+    return [master_prompt_template + "\n\n" + combined_text]
+
+
+def call_gemini_api(prompt, api_key):
+    """Calls the Gemini API and returns the response text.
+
+    ``prompt`` may be a single string or a list of prompt parts, allowing large
+    submissions to be sent as a multi-turn request.
+    """
     genai.configure(api_key=api_key)
     # Using gemini-1.5-flash-latest as it has better free tier quotas
-    model_name = 'gemini-1.5-flash-latest' 
+    model_name = 'gemini-1.5-flash-latest'
     logging.info(f"Using Gemini model: {model_name}")
     model = genai.GenerativeModel(model_name)
     
@@ -219,7 +247,7 @@ def call_gemini_api(prompt_text, api_key):
     ]
     try:
         logging.info("Sending request to Gemini API...")
-        response = model.generate_content(prompt_text, safety_settings=safety_settings)
+        response = model.generate_content(prompt, safety_settings=safety_settings)
         
         if not response.parts:
             if response.prompt_feedback and response.prompt_feedback.block_reason:
@@ -360,6 +388,7 @@ def main():
             logging.info("No specific scenario detected; proceeding without scenario context.")
 
         full_prompt = construct_full_prompt(extracted_text, draft_prompt_template, scenario_text)
+        prompt_messages = construct_prompt_messages(extracted_text, draft_prompt_template, scenario_text)
         
         # For debugging, save the full prompt sent to the API
         # prompt_debug_path = os.path.join(OUTPUT_FOLDER, f"{student_identifier}_draft_prompt_sent.txt")
@@ -367,7 +396,7 @@ def main():
         #    pf.write(full_prompt)
         # logging.info(f"Full draft prompt saved for debugging: {prompt_debug_path}")
 
-        ai_feedback_prose = call_gemini_api(full_prompt, api_key)
+        ai_feedback_prose = call_gemini_api(prompt_messages, api_key)
 
         if not ai_feedback_prose:
             logging.warning(f"Skipping {filename} due to Gemini API call failure or empty response.")
