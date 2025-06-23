@@ -9,6 +9,7 @@ This repository contains Python scripts to generate automated grading reports an
 - `master_prompt.txt` – prompt template and rubric for the main grader.
 - `draft_feedback_prompt.txt` – prompt for draft feedback.
 - `feedback_review_prompt.txt` – prompt used to check the AI feedback against the student's submission.
+- `grade_review_prompt.txt` – prompt used to double-check the fairness of the final grade.
 - `grading_process.log` and `draft_grading_process.log` – example log files created by the scripts.
 - `venv/` – Python virtual environment containing all dependencies (committed for portability).
 
@@ -45,6 +46,7 @@ Run the main grader:
 ```bash
 python grader.py
 ```
+This script now performs an additional moderation pass to check that the assigned grade is fair. Any concerns are saved as a `_grade_review.txt` file next to the final DOCX report.
 
 For draft feedback instead of a final grade:
 
@@ -69,4 +71,4 @@ The overall grade in each report is derived from the rubric points returned by t
 - The repository currently includes a Windows-based `venv` directory which can be removed if you prefer to create your own environment.
 - There are no automated tests.
 - Each run of `draft_grader.py` also outputs a `_feedback_review.txt` file summarising any inaccuracies in the AI feedback or areas already addressed in the submission.
-- After running `grader.py` a `grading_summary.csv` file is written in `output_feedback/` containing each student's total points and final grade.
+- Running `grader.py` performs a second pass to verify the grading. The result is saved as a `_grade_review.txt` file alongside each report, and a `grading_summary.csv` file summarises total points and grades.
