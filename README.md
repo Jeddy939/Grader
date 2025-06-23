@@ -64,6 +64,8 @@ Each script processes all files in `input_assessments/` and writes DOCX reports 
 
 The overall grade in each report is derived from the rubric points returned by the AI. All points from `assistant_grade.breakdown` are summed (out of 25). Scores of **20–25** receive an **A**, **15–19** a **B** and **12–14** a **C**. Scores below 12 fall back to the original band mapping for **D** or **E**.
 
+Each DOCX report lists the grade suggested by the AI (`assistant_grade.overall_grade`) alongside the grade calculated from the rubric totals. If the two differ, the final grade shown is the one based on the rubric points and a short note explains that the grade was adjusted accordingly.
+
 ## Notes
 
 - PDF text extraction uses `PyPDF2`; encrypted or malformed PDFs may fail.
