@@ -479,10 +479,29 @@ def format_feedback_as_docx(
         if doc_author:
             doc.add_paragraph(f"Author (from file metadata): {doc_author}")
 
-        # Overall Grade and Points
         grade_info = yaml_data.get("assistant_grade", {})
         breakdown = grade_info.get("breakdown", {})
 
+        rubric_criteria_details = {
+            cid: {
+                "name": cfg.get("name", cid),
+                "max_points": cfg.get("max_points", 0),
+            }
+            for cid, cfg in rubric_config.get("criteria", {}).items()
+        }
+
+        doc.add_heading("Summary of Points", level=2)
+        summary_table = doc.add_table(rows=1, cols=3)
+        header_cells = summary_table.rows[0].cells
+        header_cells[0].text = "Criterion"
+        header_cells[1].text = "Points Achieved"
+        header_cells[2].text = "Max Points"
+        for cid, details in rubric_criteria_details.items():
+            row_cells = summary_table.add_row().cells
+            row_cells[0].text = details["name"]
+            row_cells[1].text = str(breakdown.get(cid, {}).get("points", "N/A"))
+            row_cells[2].text = str(details["max_points"])
+        doc.add_paragraph()
         ai_overall_grade = grade_info.get("overall_grade")
         computed_grade = compute_overall_grade(
             breakdown, rubric_config.get("grade_bands", {}), rubric_config.get("total_points_possible", 0)
@@ -507,19 +526,12 @@ def format_feedback_as_docx(
         doc.add_heading("Detailed Breakdown by Criterion", level=2)
         reasons = yaml_data.get("assistant_reasons", [])
 
-        rubric_criteria_details = {
-            cid: {
-                "name": cfg.get("name", cid),
-                "max_points": cfg.get("max_points", 0),
-            }
-            for cid, cfg in rubric_config.get("criteria", {}).items()
-        }
-
         for idx, reason_item in enumerate(reasons, start=1):
             criterion_id = reason_item.get("criterion", "Unknown Criterion")
             band = reason_item.get("band", "N/A")
             rationale = reason_item.get("rationale", "No rationale provided.")
             evidence = reason_item.get("evidence", "No evidence quoted.")
+            improvements = reason_item.get("improvements", [])
 
             criterion_details = rubric_criteria_details.get(
                 criterion_id,
@@ -533,13 +545,14 @@ def format_feedback_as_docx(
 
             doc.add_heading(f"{idx}. {criterion_name}", level=3)
 
-            doc.add_paragraph(f"Band Achieved: {band}")
-            doc.add_paragraph(f"Points: {points_achieved} / {max_criterion_points}")
+            doc.add_paragraph(
+                f"Points: {points_achieved} / {max_criterion_points} (Band Achieved: {band})"
+            )
 
-            doc.add_paragraph("AI's Rationale:", style="Intense Quote")
+            doc.add_heading("AI's Rationale:", level=4)
             doc.add_paragraph(rationale)
 
-            doc.add_paragraph("Evidence from Student's Work:", style="Intense Quote")
+            doc.add_heading("Evidence from Student's Work:", level=4)
             if "\n" in evidence:
                 for line in evidence.splitlines():
                     line = line.strip()
@@ -548,6 +561,15 @@ def format_feedback_as_docx(
                     doc.add_paragraph(line, style="List Bullet")
             else:
                 doc.add_paragraph(evidence if evidence else "N/A")
+
+            doc.add_heading("Suggested Improvements:", level=4)
+            if isinstance(improvements, list):
+                for imp in improvements:
+                    if not imp:
+                        continue
+                    doc.add_paragraph(imp, style="List Bullet")
+            elif improvements:
+                doc.add_paragraph(str(improvements))
 
             doc.add_paragraph()  # Spacer
 
