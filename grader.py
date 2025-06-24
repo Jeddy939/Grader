@@ -351,7 +351,10 @@ def calculate_final_grade(bands_data, word_count, rubric_config):
         name = rule.get("name")
         try:
             condition = rule.get("condition", "")
-            local_vars = {f"{k}_band": bands.get(k) for k in bands}
+            local_vars = {
+                f"{cid}_band": int(bands.get(cid, 1))
+                for cid in criteria_cfg.keys()
+            }
             local_vars["word_count"] = word_count
             if eval(condition, {}, local_vars):
                 if rule.get("action") == "set_band":
