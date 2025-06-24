@@ -319,9 +319,9 @@ def parse_gemini_yaml_response(response_text):
 
 
 def compute_overall_grade(breakdown, grade_bands, total_possible):
-    """Compute a letter grade from rubric breakdown points."""
+    """Return the total points achieved across all rubric criteria."""
     if not isinstance(breakdown, dict):
-        return "N/A"
+        return 0
 
     total_points = 0
     for item in breakdown.values():
@@ -330,18 +330,7 @@ def compute_overall_grade(breakdown, grade_bands, total_possible):
         except Exception:
             continue
 
-    if total_points >= grade_bands.get("A", total_possible):
-        return "A"
-    if total_points >= grade_bands.get("B", 0):
-        return "B"
-    if total_points >= grade_bands.get("C", 0):
-        return "C"
-
-    if total_points >= total_possible * grade_bands.get("D_ratio", 0):
-        return "D"
-    if total_points >= total_possible * grade_bands.get("E_ratio", 0):
-        return "E"
-    return "E"
+    return total_points
 
 
 def calculate_final_grade(bands_data, word_count, rubric_config):
@@ -395,12 +384,9 @@ def calculate_final_grade(bands_data, word_count, rubric_config):
         breakdown[cid] = {"band": band, "points": points}
         total_points += points
 
-    overall_grade = compute_overall_grade(breakdown, grade_bands, total_possible)
-
     return {
         "total_points": total_points,
         "breakdown": breakdown,
-        "overall_grade": overall_grade,
     }
 
 
@@ -464,11 +450,6 @@ def apply_criteria_adjustments(parsed_data, adjustments, rubric_config):
 
     total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
     grade_section["total_points"] = total_points
-    grade_section["overall_grade"] = compute_overall_grade(
-        breakdown,
-        rubric_config.get("grade_bands", {}),
-        rubric_config.get("total_points_possible", 0),
-    )
 
 def extract_criteria_adjustments(review_text):
     """Parse review text for suggested band adjustments using regex."""
@@ -490,7 +471,6 @@ def format_feedback_as_docx(
     student_identifier,
     rubric_config,
     doc_author=None,
-    override_grade=None,
 ):
     """Formats the YAML data into a human-readable DOCX report."""
     try:
@@ -522,11 +502,6 @@ def format_feedback_as_docx(
             row_cells[1].text = str(breakdown.get(cid, {}).get("points", "N/A"))
             row_cells[2].text = str(details["max_points"])
         doc.add_paragraph()
-        ai_overall_grade = grade_info.get("overall_grade")
-        computed_grade = compute_overall_grade(
-            breakdown, rubric_config.get("grade_bands", {}), rubric_config.get("total_points_possible", 0)
-        )
-        final_grade = override_grade if override_grade else computed_grade
         try:
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
@@ -534,11 +509,6 @@ def format_feedback_as_docx(
         max_total_points = rubric_config.get("total_points_possible", 0)
 
         doc.add_heading("Overall Assessment", level=2)
-        if ai_overall_grade:
-            doc.add_paragraph(f"AI Reported Grade: {ai_overall_grade}")
-        doc.add_paragraph(f"Grade Based on Points: {final_grade}")
-        if ai_overall_grade and ai_overall_grade != final_grade:
-            doc.add_paragraph("Note: Grade adjusted based on rubric totals.")
         doc.add_paragraph(f"Total Points: {total_points} / {max_total_points}")
         doc.add_paragraph()  # Spacer
 
@@ -707,18 +677,12 @@ def run_grading_process():
             api_key,
             model_name=FLASH_MODEL,
         )
-        override_grade = None
         if review_text:
-            override_grade = extract_new_grade_from_review(review_text)
             review_path = OUTPUT_FOLDER / f"{output_filename_base}_grade_review.txt"
             try:
                 with open(review_path, "w", encoding="utf-8") as rf:
                     rf.write(review_text)
                 logging.info(f"Grade review saved to: {review_path}")
-                if override_grade:
-                    logging.info(
-                        f"Applying grade override from review: {override_grade}"
-                    )
                 adjustments = extract_criteria_adjustments(review_text)
                 if adjustments:
                     apply_criteria_adjustments(parsed_data, adjustments, rubric_config)
@@ -731,15 +695,7 @@ def run_grading_process():
             total_points = sum(int(item.get("points", 0)) for item in breakdown.values())
         except Exception:
             total_points = parsed_data.get("assistant_grade", {}).get("total_points", "N/A")
-        overall_grade = compute_overall_grade(
-            breakdown,
-            rubric_config.get("grade_bands", {}),
-            rubric_config.get("total_points_possible", 0),
-        )
-        if override_grade:
-            overall_grade = override_grade
-
-        summary_entries.append((student_identifier, total_points, overall_grade))
+        summary_entries.append((student_identifier, total_points))
 
         format_feedback_as_docx(
             parsed_data,
@@ -747,7 +703,6 @@ def run_grading_process():
             student_identifier,
             rubric_config,
             doc_author=doc_author,
-            override_grade=override_grade,
         )
         successful_grades += 1
         logging.info(f"Successfully processed and graded: {filename}")
@@ -770,9 +725,9 @@ def run_grading_process():
         summary_path = OUTPUT_FOLDER / SUMMARY_FILE
         try:
             with open(summary_path, "w", encoding="utf-8") as sf:
-                sf.write("student,total_points,grade\n")
-                for ident, points, grade in summary_entries:
-                    sf.write(f"{ident},{points},{grade}\n")
+                sf.write("student,total_points\n")
+                for ident, points in summary_entries:
+                    sf.write(f"{ident},{points}\n")
             logging.info(f"Summary saved to: {summary_path}")
         except Exception as e:
             logging.error(f"Failed to write summary file: {e}")
