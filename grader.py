@@ -369,10 +369,21 @@ def calculate_final_grade(bands_data, word_count, rubric_config):
         except Exception:
             logging.warning(f"Failed to evaluate rule '{name}'.")
 
+    def _norm(key):
+        """Normalize keys for robust matching."""
+        return re.sub(r"\s+", "", str(key)).lower()
+
+    normalized_bands = {_norm(k): v for k, v in bands.items()}
+
     breakdown = {}
     total_points = 0
     for cid, cfg in criteria_cfg.items():
-        band = int(bands.get(cid, 1))
+        lookup_keys = [_norm(cid), _norm(cfg.get("name", ""))]
+        band = 1
+        for lk in lookup_keys:
+            if lk in normalized_bands:
+                band = int(normalized_bands[lk])
+                break
         max_points = int(cfg.get("max_points", band))
         points = min(band, max_points)
         breakdown[cid] = {"band": band, "points": points}
