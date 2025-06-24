@@ -338,6 +338,30 @@ def compute_overall_grade(breakdown, grade_bands, total_possible):
     return "E"
 
 
+def extract_improvement_suggestion(rationale: str) -> str:
+    """Heuristically derive an improvement suggestion from a rationale string."""
+    if not rationale:
+        return "Consider referencing the rubric to see how this section could be improved."
+
+    patterns = [
+        r"to\s+(?:reach|achieve).*?band[^.]*\.?",
+        r"should\s+[^.]*",
+        r"needs?\s+to\s+[^.]*",
+        r"could\s+[^.]*",
+    ]
+
+    for pat in patterns:
+        m = re.search(pat, rationale, re.IGNORECASE)
+        if m:
+            suggestion = m.group(0).strip()
+            if not suggestion.endswith('.'):
+                suggestion += '.'
+            # Capitalize first letter for consistency
+            return suggestion[0].upper() + suggestion[1:]
+
+    return "Consider refining this section to better meet higher rubric bands."
+
+
 def calculate_final_grade(bands_data, word_count, rubric_config):
     """Apply rubric rules and compute final grade breakdown."""
     criteria_cfg = rubric_config.get("criteria", {})
@@ -501,6 +525,21 @@ def format_feedback_as_docx(
         if ai_overall_grade and ai_overall_grade != final_grade:
             doc.add_paragraph("Note: Grade adjusted based on rubric totals.")
         doc.add_paragraph(f"Total Points: {total_points} / {max_total_points}")
+
+        # Summary table of points per criterion
+        summary_table = doc.add_table(rows=len(breakdown) + 1, cols=3)
+        summary_table.style = "Light Grid"
+        hdr_cells = summary_table.rows[0].cells
+        hdr_cells[0].text = "Criterion"
+        hdr_cells[1].text = "Band"
+        hdr_cells[2].text = "Points"
+        for i, (cid, info) in enumerate(breakdown.items(), start=1):
+            crit_cells = summary_table.rows[i].cells
+            crit_name = rubric_config.get("criteria", {}).get(cid, {}).get("name", cid)
+            crit_cells[0].text = crit_name
+            crit_cells[1].text = str(info.get("band", "N/A"))
+            crit_cells[2].text = f"{info.get('points', 'N/A')} / {rubric_config.get('criteria', {}).get(cid, {}).get('max_points', '')}"
+
         doc.add_paragraph()  # Spacer
 
         # Criteria Breakdown
@@ -520,6 +559,7 @@ def format_feedback_as_docx(
             band = reason_item.get("band", "N/A")
             rationale = reason_item.get("rationale", "No rationale provided.")
             evidence = reason_item.get("evidence", "No evidence quoted.")
+            improvement = extract_improvement_suggestion(rationale)
 
             criterion_details = rubric_criteria_details.get(
                 criterion_id,
@@ -533,8 +573,8 @@ def format_feedback_as_docx(
 
             doc.add_heading(f"{idx}. {criterion_name}", level=3)
 
-            doc.add_paragraph(f"Band Achieved: {band}")
             doc.add_paragraph(f"Points: {points_achieved} / {max_criterion_points}")
+            doc.add_paragraph(f"Band Achieved: {band}")
 
             doc.add_paragraph("AI's Rationale:", style="Intense Quote")
             doc.add_paragraph(rationale)
@@ -548,6 +588,9 @@ def format_feedback_as_docx(
                     doc.add_paragraph(line, style="List Bullet")
             else:
                 doc.add_paragraph(evidence if evidence else "N/A")
+
+            doc.add_paragraph("Improvement Suggestion:", style="Intense Quote")
+            doc.add_paragraph(improvement)
 
             doc.add_paragraph()  # Spacer
 
